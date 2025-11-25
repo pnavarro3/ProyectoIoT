@@ -1,87 +1,107 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-const char* ssid = "yiyiyi";
-const char* password = "xabicrack";
+// Configuración WiFi
+const char* ssid = "TU_SSID";
+const char* password = "TU_PASSWORD";
 
-const int RELE_ESTRELLA = 5;
-const int RELE_TRIANGULO = 18;
-const int RELE_DERECHA = 19;
-const int RELE_IZQUIERDA = 21;
+// Pines de relés HW-316
+const int RELE1_SUBIR_LENTO = 5;   // KM4 + KM1
+const int RELE2_BAJAR_LENTO = 18;  // KM5 + KM1
+const int RELE3_RAPIDO = 19;       // KM2 + KM3
+const int RELE4_POWER = 21;        // Alimentación general
 
+// Estado del sistema
 String estadoMotor = "Parado";
-String estadoArranque = "-";
-String sentidoGiro = "-";
+String velocidad = "-";
+String direccion = "-";
+bool powerOn = false;
 
 WebServer server(80);
 
 void apagarTodo() {
-  digitalWrite(RELE_ESTRELLA, LOW);
-  digitalWrite(RELE_TRIANGULO, LOW);
-  digitalWrite(RELE_DERECHA, LOW);
-  digitalWrite(RELE_IZQUIERDA, LOW);
+  digitalWrite(RELE1_SUBIR_LENTO, LOW);
+  digitalWrite(RELE2_BAJAR_LENTO, LOW);
+  digitalWrite(RELE3_RAPIDO, LOW);
+  digitalWrite(RELE4_POWER, LOW);
+  powerOn = false;
   estadoMotor = "Parado";
-  estadoArranque = "-";
-  sentidoGiro = "-";
+  velocidad = "-";
+  direccion = "-";
 }
 
-void arrancarMotor(bool derecha) {
-  apagarTodo();
-  if (derecha) {
-    digitalWrite(RELE_DERECHA, HIGH);
-    sentidoGiro = "Derecha";
-  } else {
-    digitalWrite(RELE_IZQUIERDA, HIGH);
-    sentidoGiro = "Izquierda";
-  }
-  digitalWrite(RELE_ESTRELLA, HIGH);
-  estadoArranque = "Estrella";
+void encenderSistema() {
+  digitalWrite(RELE4_POWER, HIGH);
+  powerOn = true;
+}
+
+void subirLento() {
+  if (!powerOn) return;
+  digitalWrite(RELE1_SUBIR_LENTO, HIGH);
+  digitalWrite(RELE2_BAJAR_LENTO, LOW);
   estadoMotor = "Arrancado";
-  delay(3000);
-  digitalWrite(RELE_ESTRELLA, LOW);
-  digitalWrite(RELE_TRIANGULO, HIGH);
-  estadoArranque = "Triángulo";
+  direccion = "Subida";
+  velocidad = "Lento";
 }
 
-// Página principal con AJAX
+void bajarLento() {
+  if (!powerOn) return;
+  digitalWrite(RELE2_BAJAR_LENTO, HIGH);
+  digitalWrite(RELE1_SUBIR_LENTO, LOW);
+  estadoMotor = "Arrancado";
+  direccion = "Bajada";
+  velocidad = "Lento";
+}
+
+void modoRapido() {
+  if (!powerOn) return;
+  digitalWrite(RELE3_RAPIDO, HIGH);
+  digitalWrite(RELE1_SUBIR_LENTO, LOW);
+  digitalWrite(RELE2_BAJAR_LENTO, LOW);
+  estadoMotor = "Arrancado";
+  velocidad = "Rápido";
+}
+
 String paginaHTML() {
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Control Motor</title>";
-  html += "<script>";
-  html += "function actualizar(){fetch('/estado').then(r=>r.json()).then(d=>{";
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Ascensor Dahlander</title>";
+  html += "<script>function actualizar(){fetch('/estado').then(r=>r.json()).then(d=>{";
   html += "document.getElementById('estado').innerText=d.estado;";
-  html += "document.getElementById('sentido').innerText=d.sentido;";
-  html += "document.getElementById('arranque').innerText=d.arranque;});}";
-  html += "setInterval(actualizar,1000);"; // cada 1 segundo
-  html += "</script></head><body>";
-  html += "<h1>Control Motor Estrella-Triángulo</h1>";
+  html += "document.getElementById('direccion').innerText=d.direccion;";
+  html += "document.getElementById('velocidad').innerText=d.velocidad;";
+  html += "document.getElementById('power').innerText=d.power;});}";
+  html += "setInterval(actualizar,1000);</script></head><body>";
+  html += "<h1>Control Ascensor Dahlander</h1>";
+  html += "<p><b>Power:</b> <span id='power'>" + String(powerOn ? "ON" : "OFF") + "</span></p>";
   html += "<p><b>Estado:</b> <span id='estado'>" + estadoMotor + "</span></p>";
-  html += "<p><b>Sentido:</b> <span id='sentido'>" + sentidoGiro + "</span></p>";
-  html += "<p><b>Arranque:</b> <span id='arranque'>" + estadoArranque + "</span></p>";
-  html += "<form action='/derecha'><button>Arrancar Derecha</button></form>";
-  html += "<form action='/izquierda'><button>Arrancar Izquierda</button></form>";
+  html += "<p><b>Dirección:</b> <span id='direccion'>" + direccion + "</span></p>";
+  html += "<p><b>Velocidad:</b> <span id='velocidad'>" + velocidad + "</span></p>";
+  html += "<form action='/power'><button>Encender Sistema</button></form>";
+  html += "<form action='/subir'><button>Subir Lento</button></form>";
+  html += "<form action='/bajar'><button>Bajar Lento</button></form>";
+  html += "<form action='/rapido'><button>Modo Rápido</button></form>";
   html += "<form action='/parar'><button>Parar</button></form>";
   html += "</body></html>";
   return html;
 }
 
-// Rutas
 void handleRoot() { server.send(200, "text/html", paginaHTML()); }
-void handleDerecha() { arrancarMotor(true); server.send(200, "text/html", paginaHTML()); }
-void handleIzquierda() { arrancarMotor(false); server.send(200, "text/html", paginaHTML()); }
+void handlePower() { encenderSistema(); server.send(200, "text/html", paginaHTML()); }
+void handleSubir() { subirLento(); server.send(200, "text/html", paginaHTML()); }
+void handleBajar() { bajarLento(); server.send(200, "text/html", paginaHTML()); }
+void handleRapido() { modoRapido(); server.send(200, "text/html", paginaHTML()); }
 void handleParar() { apagarTodo(); server.send(200, "text/html", paginaHTML()); }
 
-// Endpoint JSON para AJAX
 void handleEstado() {
-  String json = "{\"estado\":\"" + estadoMotor + "\",\"sentido\":\"" + sentidoGiro + "\",\"arranque\":\"" + estadoArranque + "\"}";
+  String json = "{\"estado\":\"" + estadoMotor + "\",\"direccion\":\"" + direccion + "\",\"velocidad\":\"" + velocidad + "\",\"power\":\"" + (powerOn ? "ON" : "OFF") + "\"}";
   server.send(200, "application/json", json);
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(RELE_ESTRELLA, OUTPUT);
-  pinMode(RELE_TRIANGULO, OUTPUT);
-  pinMode(RELE_DERECHA, OUTPUT);
-  pinMode(RELE_IZQUIERDA, OUTPUT);
+  pinMode(RELE1_SUBIR_LENTO, OUTPUT);
+  pinMode(RELE2_BAJAR_LENTO, OUTPUT);
+  pinMode(RELE3_RAPIDO, OUTPUT);
+  pinMode(RELE4_POWER, OUTPUT);
   apagarTodo();
 
   WiFi.begin(ssid, password);
@@ -90,8 +110,10 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   server.on("/", handleRoot);
-  server.on("/derecha", handleDerecha);
-  server.on("/izquierda", handleIzquierda);
+  server.on("/power", handlePower);
+  server.on("/subir", handleSubir);
+  server.on("/bajar", handleBajar);
+  server.on("/rapido", handleRapido);
   server.on("/parar", handleParar);
   server.on("/estado", handleEstado);
 
