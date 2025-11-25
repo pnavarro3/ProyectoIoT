@@ -2,13 +2,13 @@
 #include <WebServer.h>
 
 // Configuración WiFi
-const char* ssid = "TU_SSID";
-const char* password = "TU_PASSWORD";
+const char* ssid = "yiyiyi";
+const char* password = "xabicrack";
 
 // Pines de relés HW-316
-const int RELE1_SUBIR_LENTO = 5;   // KM4 + KM1
-const int RELE2_BAJAR_LENTO = 18;  // KM5 + KM1
-const int RELE3_RAPIDO = 19;       // KM2 + KM3
+const int RELE1_SUBIR_LENTO = 5;   // Subir lento
+const int RELE2_BAJAR_LENTO = 18;  // Bajar lento
+const int RELE3_RAPIDO = 19;       // Pasar a velocidad rapida
 const int RELE4_POWER = 21;        // Alimentación general
 
 // Estado del sistema
