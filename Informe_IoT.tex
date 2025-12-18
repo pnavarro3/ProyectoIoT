@@ -269,7 +269,7 @@ En este proyecto se utiliza un módulo LDR con comparador integrado que proporci
 
 \subsubsection{Módulo de relés}
 
-Se emplea un módulo de 4 relés HW-316 para control de cargas de potencia (motor Dahlander).
+Se emplea un módulo de 4 relés HW-316 como interfaz entre el ESP32 y los contactores auxiliares del circuito de control.
 
 \textbf{Especificaciones:}
 \begin{itemize}
@@ -282,7 +282,36 @@ Se emplea un módulo de 4 relés HW-316 para control de cargas de potencia (moto
     \item Optoacoplamiento para aislamiento galvánico
 \end{itemize}
 
-Los relés permiten al ESP32 controlar circuitos de potencia del motor trifásico sin riesgo de daño por sobrevoltaje o corrientes elevadas, proporcionando aislamiento eléctrico entre la lógica de control y la carga.
+\textbf{Arquitectura de control en cascada:}
+
+El sistema implementa una arquitectura de control en tres niveles que proporciona aislamiento y seguridad:
+
+\begin{enumerate}
+    \item \textbf{Nivel 1 - Control digital (ESP32):} El microcontrolador ESP32 genera señales de control digitales a 3.3V en los pines GPIO 26, 25, 27 y 14.
+    
+    \item \textbf{Nivel 2 - Relés de interfaz (HW-316):} El módulo de relés recibe las señales del ESP32 y conmuta contactos de mayor potencia. El optoacoplamiento proporciona aislamiento galvánico entre la lógica y el circuito de control.
+    
+    \item \textbf{Nivel 3 - Contactores auxiliares (KA1-KA4):} Los contactos de los relés alimentan las bobinas de los contactores auxiliares a 24V, que a su vez controlan los contactores de potencia (KM) que manejan el motor trifásico.
+\end{enumerate}
+
+\textbf{Correspondencia de control:}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|c|p{4cm}|}
+\hline
+\textbf{Pin GPIO} & \textbf{Relé HW-316} & \textbf{Contactor KA} & \textbf{Contactor KM} & \textbf{Función} \\
+\hline
+GPIO 26 & RELE1 (IN1) & KA1 & KM4 & Subida lenta \\
+GPIO 25 & RELE2 (IN2) & KA2 & KM5 & Bajada lenta \\
+GPIO 27 & RELE3 (IN3) & KA3 & KM3 & Velocidad rápida \\
+GPIO 14 & RELE4 (IN4) & KA4 & Q1 & Power general \\
+\hline
+\end{tabular}
+\caption{Cadena completa de control desde ESP32 hasta motor}
+\end{table}
+
+Esta arquitectura permite al ESP32 controlar contactores de alta potencia del motor trifásico sin riesgo de daño por sobrevoltaje o corrientes elevadas, proporcionando múltiples niveles de aislamiento eléctrico entre la lógica de control de bajo voltaje y la carga de potencia.
 
 \subsection{Motor Dahlander}
 
@@ -327,16 +356,27 @@ Los motores Dahlander son especialmente útiles en:
     \item Cintas transportadoras (carga variable)
 \end{itemize}
 
-\subsubsection{Control de velocidad mediante relés}
+\subsubsection{Control de velocidad mediante relés y contactores}
 
-En este proyecto, se emplean 4 relés para controlar el motor Dahlander:
+En este proyecto, se emplea una arquitectura de control en cascada que utiliza 4 relés HW-316 para controlar contactores auxiliares (KA), que a su vez comandan contactores de potencia (KM) del motor Dahlander:
 
+\textbf{Nivel 1 - ESP32 y Relés HW-316:}
 \begin{enumerate}
-    \item \textbf{Relé 1 (GPIO 26):} Control de subida a velocidad lenta - Activa la configuración de más polos para movimiento ascendente controlado
-    \item \textbf{Relé 2 (GPIO 25):} Control de bajada a velocidad lenta - Activa la configuración de más polos para movimiento descendente controlado
-    \item \textbf{Relé 3 (GPIO 27):} Activación de velocidad alta - Conmuta el motor a la configuración de menos polos para desplazamiento rápido
-    \item \textbf{Relé 4 (GPIO 14):} Alimentación general del motor - Control maestro de potencia al sistema motriz
+    \item \textbf{RELE1 (GPIO 26) → KA1 → KM4:} Control de subida a velocidad lenta - Activa la configuración de más polos para movimiento ascendente controlado
+    \item \textbf{RELE2 (GPIO 25) → KA2 → KM5:} Control de bajada a velocidad lenta - Activa la configuración de más polos para movimiento descendente controlado
+    \item \textbf{RELE3 (GPIO 27) → KA3 → KM3:} Activación de velocidad alta - Conmuta el motor a la configuración de menos polos para desplazamiento rápido
+    \item \textbf{RELE4 (GPIO 14) → KA4 → Q1:} Alimentación general del motor - Control maestro de potencia al sistema motriz
 \end{enumerate}
+
+\textbf{Nivel 2 - Contactores de Potencia (KM):}
+
+Los contactores KM1 y KM2 controlan el sentido de rotación del motor (inversión de fases), mientras que KM3, KM4 y KM5 configuran el número de polos activos y por tanto la velocidad de operación. Esta configuración permite implementar el control bidireccional con dos velocidades característico de un sistema de montacargas.
+
+\textbf{Flujo de control completo:}
+
+\begin{equation}
+\text{ESP32 (3.3V)} \rightarrow \text{Relés HW-316 (5V)} \rightarrow \text{KA (24V)} \rightarrow \text{KM (Potencia)} \rightarrow \text{Motor (Trifásico)}
+\end{equation}
 
 La secuencia de activación de los relés debe seguir un orden específico para evitar:
 \begin{itemize}
@@ -384,13 +424,90 @@ El flujo de información en el sistema sigue esta secuencia:
         \item Ejecuta el algoritmo de control de posición
         \item Actualiza el display LCD local
         \item Sirve la interfaz web con datos en tiempo real
-        \item Activa/desactiva relés según la lógica de control
+        \item Genera señales de control (3.3V) en pines GPIO
     \end{itemize}
     
-    \item Los \textbf{relés} conmutan las conexiones del motor Dahlander según comandos recibidos.
+    \item Los \textbf{relés HW-316}:
+    \begin{itemize}
+        \item Reciben señales del ESP32 (nivel lógico 3.3V)
+        \item Proporcionan aislamiento galvánico mediante optoacopladores
+        \item Conmutan contactos de mayor potencia (10A @ 250VAC)
+    \end{itemize}
+    
+    \item Los \textbf{contactores auxiliares (KA1-KA4)}:
+    \begin{itemize}
+        \item Son activados por los contactos de los relés HW-316
+        \item Operan con bobinas a 24VDC
+        \item Comandan los contactores de potencia del motor
+    \end{itemize}
+    
+    \item Los \textbf{contactores de potencia (KM1-KM5)}:
+    \begin{itemize}
+        \item KM1, KM2: Controlan sentido de giro (inversión de fases)
+        \item KM3: Configuración de velocidad rápida (menos polos)
+        \item KM4, KM5: Configuración de velocidad lenta (más polos) según dirección
+        \item Reconfiguran conexiones del motor Dahlander
+    \end{itemize}
     
     \item El \textbf{motor Dahlander} mueve el montacargas, modificando la distancia medida por el sensor, cerrando el lazo de control.
 \end{enumerate}
+
+\textbf{Diagrama de flujo de control:}
+
+\begin{equation}
+\text{Sensores} \xrightarrow{\text{MQTT}} \text{ESP32 Control} \xrightarrow{\text{3.3V}} \text{Relés} \xrightarrow{\text{Contactos}} \text{KA} \xrightarrow{\text{24V}} \text{KM} \xrightarrow{\text{L1,L2,L3}} \text{Motor}
+\end{equation}
+
+\subsection{Esquemas eléctricos del sistema}
+
+\subsubsection{Circuito de potencia trifásico}
+
+La Figura \ref{fig:circuito_potencia} muestra el circuito de potencia completo del motor Dahlander trifásico. Este circuito incluye la alimentación desde las líneas L1, L2 y L3, el pulsador Q1 para control manual, los fusibles F1 y F2 para protección de sobrecorriente, y los cinco contactores de potencia (KM1-KM5) que controlan la configuración del motor.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{circuito_potencia.png}
+\caption{Esquema eléctrico del circuito de potencia del motor Dahlander}
+\label{fig:circuito_potencia}
+\end{figure}
+
+Los contactores de potencia cumplen las siguientes funciones:
+\begin{itemize}
+    \item \textbf{KM1 y KM2:} Contactores de inversión que determinan el sentido de giro del motor (subida o bajada del montacargas)
+    \item \textbf{KM3:} Contactor de velocidad rápida - Conmuta el motor a configuración de menos polos
+    \item \textbf{KM4:} Contactor de subida lenta - Activa configuración de más polos para movimiento ascendente controlado
+    \item \textbf{KM5:} Contactor de bajada lenta - Activa configuración de más polos para movimiento descendente controlado
+\end{itemize}
+
+\subsubsection{Circuito de control y mando}
+
+La Figura \ref{fig:circuito_control} presenta el circuito de control a 24V que gestiona la activación de los contactores de potencia mediante los contactores auxiliares KA1-KA4, que son controlados por el ESP32 a través del módulo de relés.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{circuito_control.png}
+\caption{Esquema eléctrico del circuito de control a 24V con contactores auxiliares}
+\label{fig:circuito_control}
+\end{figure}
+
+El circuito de control implementa una arquitectura en cascada donde el ESP32 controla relés de bajo nivel, que a su vez activan contactores auxiliares (KA), y finalmente estos contactores auxiliares comandan los contactores de potencia (KM) que manejan el motor trifásico:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline
+\textbf{ESP32} & \textbf{Relé} & \textbf{KA} & \textbf{KM Controlado} \\
+\hline
+GPIO 26 & RELE1 & KA1 & KM4 (Subida lenta) \\
+GPIO 25 & RELE2 & KA2 & KM5 (Bajada lenta) \\
+GPIO 27 & RELE3 & KA3 & KM3 (Velocidad rápida) \\
+GPIO 14 & RELE4 & KA4 & Q1/Alimentación general \\
+\hline
+\end{tabular}
+\caption{Cadena de control: ESP32 → Relés → Contactores Auxiliares (KA) → Contactores de Potencia (KM)}
+\end{table}
+
+Esta arquitectura proporciona aislamiento galvánico entre la lógica de control de bajo voltaje (ESP32 a 3.3V) y el circuito de potencia trifásico, mejorando la seguridad y protegiéndolos componentes electrónicos sensibles.
 
 \subsection{Comunicación entre módulos}
 
@@ -582,28 +699,57 @@ El módulo de control es el cerebro del sistema, ejecutando múltiples tareas co
 
 \subsection{Sistema de Control del Motor Dahlander}
 
-El control del motor Dahlander constituye uno de los elementos centrales del sistema, permitiendo el desplazamiento del montacargas con velocidad variable según la fase del movimiento.
+El control del motor Dahlander constituye uno de los elementos centrales del sistema, permitiendo el desplazamiento del montacargas con velocidad variable según la fase del movimiento. El sistema implementa una arquitectura de control en cascada que separa la lógica de bajo voltaje de la potencia trifásica mediante múltiples etapas de aislamiento.
 
-\subsubsection{Configuración de relés}
+\subsubsection{Arquitectura de control en cascada}
 
-Se emplea un módulo de 4 relés HW-316 conectado al ESP32 mediante las siguientes asignaciones:
+La arquitectura del sistema se estructura en cuatro niveles jerárquicos de control:
+
+\textbf{Nivel 1 - Lógica de control (ESP32):}
+
+El microcontrolador ESP32 ejecuta el algoritmo de control de posición y genera señales digitales a 3.3V en cuatro pines GPIO (26, 25, 27, 14). Esta etapa implementa toda la inteligencia del sistema: procesamiento de datos de sensores, cálculo de trayectorias, implementación del perfil trapezoidal de velocidad y gestión de las secuencias de conmutación seguras.
+
+\textbf{Nivel 2 - Interfaz de relés (Módulo HW-316):}
+
+El módulo de relés HW-316 actúa como primera etapa de aislamiento y amplificación. Cada señal de control del ESP32 activa un optoacoplador que proporciona aislamiento galvánico completo entre la lógica de 3.3V y el circuito de control. Los relés conmutan contactos capaces de manejar hasta 10A a 250VAC, suficiente para activar las bobinas de los contactores auxiliares.
+
+\textbf{Nivel 3 - Contactores auxiliares (KA1-KA4):}
+
+Los contactores auxiliares operan con bobinas alimentadas a 24VDC y proporcionan una segunda etapa de aislamiento y amplificación. Estos contactores, diseñados para ciclos de trabajo frecuentes, comandan los contactores de potencia que manejan el motor trifásico. La correspondencia específica es:
+
+\begin{itemize}
+    \item \textbf{KA1:} Comandado por RELE1, activa el contactor KM4 (subida lenta)
+    \item \textbf{KA2:} Comandado por RELE2, activa el contactor KM5 (bajada lenta)
+    \item \textbf{KA3:} Comandado por RELE3, activa el contactor KM3 (velocidad rápida)
+    \item \textbf{KA4:} Comandado por RELE4, activa el pulsador/contactor Q1 (alimentación general)
+\end{itemize}
+
+\textbf{Nivel 4 - Contactores de potencia (KM1-KM5):}
+
+Los contactores de potencia manejan directamente las líneas trifásicas del motor (L1, L2, L3). KM1 y KM2 implementan la inversión de sentido de giro mediante conmutación de dos fases, mientras que KM3, KM4 y KM5 reconfiguran las conexiones de los bobinados del motor Dahlander para lograr las dos velocidades de operación características de este tipo de motor.
+
+\subsubsection{Configuración de relés y contactores}
+
+La tabla siguiente resume la cadena completa de control desde el microcontrolador hasta el motor:
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|c|c|l|}
+\begin{tabular}{|c|c|c|c|l|}
 \hline
-\textbf{Relé} & \textbf{Pin GPIO} & \textbf{Función} \\
+\textbf{GPIO} & \textbf{Relé} & \textbf{KA} & \textbf{KM} & \textbf{Función en el Motor} \\
 \hline
-Relé 1 & GPIO 26 & Control motor - Subida lenta \\
-Relé 2 & GPIO 25 & Control motor - Bajada lenta \\
-Relé 3 & GPIO 27 & Control motor - Velocidad alta \\
-Relé 4 & GPIO 14 & Control motor - Alimentación general \\
+26 & RELE1 & KA1 & KM4 & Subida lenta (más polos) \\
+25 & RELE2 & KA2 & KM5 & Bajada lenta (más polos) \\
+27 & RELE3 & KA3 & KM3 & Velocidad rápida (menos polos) \\
+14 & RELE4 & KA4 & Q1 & Alimentación general \\
 \hline
 \end{tabular}
-\caption{Asignación de relés para control del motor Dahlander}
+\caption{Cadena de control completa: ESP32 → Relés → KA → KM → Motor}
 \end{table}
 
-Los relés actúan sobre los contactores del motor, reconfigurando las conexiones de los bobinados para lograr las dos velocidades características del motor Dahlander. La configuración específica depende del tipo de motor (Y/YY o $\Delta$/YY) y el esquema de cableado implementado.
+\textbf{Principio de operación:}
+
+Cuando el ESP32 establece un pin GPIO en nivel LOW (debido a la lógica invertida del módulo de relés), se activa la bobina del relé correspondiente cerrando su contacto. Este contacto alimenta la bobina del contactor auxiliar KA a 24VDC, el cual cierra sus contactos de mayor potencia. Estos contactos del KA alimentan finalmente la bobina del contactor de potencia KM, que conmuta las conexiones del motor trifásico según la función deseada.
 
 \subsubsection{Lógica de control de velocidades}
 

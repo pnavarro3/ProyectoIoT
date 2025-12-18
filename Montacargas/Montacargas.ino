@@ -32,11 +32,11 @@ const unsigned long intervaloActualizacionNoticias = 7200000; // 2 horas en mili
 unsigned long ultimaActualizacionNoticias = 0;
 String noticiasCache = "[]"; // Cache de noticias en formato JSON
 
-// Pines relés HW-316 (configuración actual)
-const int RELE1_SUBIR_LENTO = 26;   // Subir lento (activo LOW)
-const int RELE2_BAJAR_LENTO = 25;   // Bajar lento (activo LOW)
-const int RELE3_RAPIDO = 27;        // Pasar a modo rapido (activo LOW)
-const int RELE4_POWER = 14;         // Alimentación general (activo LOW)
+// Pines relés HW-316 → Contactores Auxiliares (KA) → Contactores de Potencia (KM)
+const int RELE1_SUBIR_LENTO = 26;   // RELE1 → KA1 → KM4 (subir lento, activo LOW)
+const int RELE2_BAJAR_LENTO = 25;   // RELE2 → KA2 → KM5 (bajar lento, activo LOW)
+const int RELE3_RAPIDO = 27;        // RELE3 → KA3 → KM3 (modo rápido, activo LOW)
+const int RELE4_POWER = 14;         // RELE4 → KA4 → Q1 (alimentación general, activo LOW)
 
 // LED de iluminación
 const int LED_LUZ = 2;              // LED que se enciende cuando está oscuro
