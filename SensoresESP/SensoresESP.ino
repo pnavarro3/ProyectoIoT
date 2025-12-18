@@ -9,14 +9,14 @@
 #include <DHT.h>
 
 // ========== CONFIGURACIÓN WIFI ==========
-const char* ssid = "TU_SSID";           // Cambiar por tu red WiFi
-const char* password = "TU_PASSWORD";    // Cambiar por tu contraseña
+const char* ssid = "yiyiyi";
+const char* password = "xabicrack";
 
 // ========== CONFIGURACIÓN MQTT ==========
 // IMPORTANTE: Cambia esta IP por la de tu portátil cuando lo configures
 // Para obtenerla, ejecuta en PowerShell: ipconfig
 // Busca la IPv4 de tu adaptador WiFi/Ethernet (ejemplo: 192.168.1.XXX)
-const char* mqtt_server = "192.168.1.100";  // ⚠️ CAMBIAR por IP de tu portátil
+const char* mqtt_server = "10.160.243.29";  // IP del portátil
 const int mqtt_port = 1883;
 const char* mqtt_user = "";                  // Usuario MQTT (opcional)
 const char* mqtt_password = "";              // Contraseña MQTT (opcional)
@@ -38,7 +38,7 @@ const char* topic_estado = "montacargas/sensores/estado";
 #define LDR_PIN 34  // Pin digital (HIGH=Oscuro, LOW=Claro)
 
 // Sensor DHT11
-#define DHT_PIN 4
+#define DHT_PIN 4  // GPIO4
 #define DHT_TYPE DHT11
 
 // ========== OBJETOS ==========
@@ -48,7 +48,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 
 // ========== VARIABLES GLOBALES ==========
 unsigned long lastSensorRead = 0;
-const long sensorInterval = 250;  // Intervalo de lectura de sensores (250ms para máxima precisión)
+const long sensorInterval = 2000;  // Intervalo de lectura de sensores (2 segundos)
 
 float distancia = 0.0;
 int luminosidad = 0;
@@ -286,5 +286,11 @@ void publicarDatos() {
     mqttClient.publish(topic_humedad, mensaje);
   }
   
-  Serial.println("Datos publicados en MQTT");
+  // Imprimir por serial cada vez que se publican datos
+  Serial.println("\n========== DATOS ENVIADOS ==========");
+  Serial.print("Distancia: "); Serial.print(distancia); Serial.println(" cm");
+  Serial.print("Luminosidad: "); Serial.println(luminosidad == 0 ? "Claro" : "Oscuro");
+  Serial.print("Temperatura: "); Serial.print(temperatura); Serial.println(" °C");
+  Serial.print("Humedad: "); Serial.print(humedad); Serial.println(" %");
+  Serial.println("====================================");
 }

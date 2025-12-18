@@ -19,7 +19,7 @@ const char* password = "xabicrack";
 // IMPORTANTE: Cambia esta IP por la de tu portátil cuando lo configures
 // Para obtenerla, ejecuta en PowerShell: ipconfig
 // Busca la IPv4 de tu adaptador WiFi/Ethernet (ejemplo: 192.168.1.XXX)
-const char* mqtt_server = "192.168.1.100";  // ⚠️ CAMBIAR por IP de tu portátil
+const char* mqtt_server = "10.160.243.29";  // IP del portátil
 const int mqtt_port = 1883;
 const char* mqtt_user = "";
 const char* mqtt_password = "";
@@ -28,7 +28,7 @@ const char* mqtt_client_id = "ESP32_Montacargas";
 // ========== CONFIGURACIÓN NEWS API ==========
 // Obtén tu API Key gratis en: https://newsapi.org
 const char* newsApiKey = "64cac7cb2c8b49b599852cb50d4e97dd";
-const unsigned long intervaloActualizacionNoticias = 7200000; // 2 horas en milisegundos
+const unsigned long intervaloActualizacionNoticias = 300000; // 5 minutos
 unsigned long ultimaActualizacionNoticias = 0;
 String noticiasCache = "[]"; // Cache de noticias en formato JSON
 
@@ -541,7 +541,7 @@ void handleEstado() {
   json += "\"humedad\":" + String(humedad, 1) + ",";
   json += "\"luz\":\"" + estadoLuz + "\",";
   json += "\"estado\":\"" + direccion + "\",";
-  json += "\"power\":\"" + (powerOn ? "ON" : "OFF") + "\"";
+  json += "\"power\":\"" + String(powerOn ? "ON" : "OFF") + "\"";
   json += "}";
   server.send(200, "application/json", json);
 }
