@@ -1,0 +1,1351 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Configuración de colores para código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{Sistema IoT de Control de Montacargas con Motor Dahlander}
+\author{Pablo Navarro Domínguez}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\newpage
+\tableofcontents
+
+\newpage
+
+\section{Introducción}
+
+\subsection{Contexto del proyecto}
+
+La automatización industrial constituye uno de los pilares fundamentales de la Industria 4.0, donde la integración de tecnologías de Internet de las Cosas (IoT) permite optimizar procesos, reducir costos operativos y mejorar la seguridad en entornos productivos. Los sistemas de transporte vertical, como montacargas y ascensores, son elementos críticos en instalaciones industriales y comerciales que requieren control preciso, monitoreo continuo y alta fiabilidad.
+
+Tradicionalmente, estos sistemas emplean controladores lógicos programables (PLC) que, si bien son robustos, presentan limitaciones en cuanto a conectividad, flexibilidad de configuración y costos de implementación. La evolución de los microcontroladores con capacidades de comunicación inalámbrica, como el ESP32, ha abierto nuevas posibilidades para desarrollar sistemas de control distribuidos más económicos y versátiles.
+
+Este proyecto se enmarca en el contexto académico de la asignatura de Internet de las Cosas, buscando aplicar los conceptos teóricos de arquitecturas IoT, protocolos de comunicación y sistemas embebidos al control de un montacargas industrial equipado con motor Dahlander.
+
+\subsection{Motivación}
+
+La motivación principal de este proyecto es demostrar la viabilidad de implementar sistemas de control industrial utilizando tecnologías IoT de bajo costo, manteniendo los estándares de seguridad y precisión requeridos en aplicaciones industriales reales. Específicamente, se busca explorar la aplicación práctica del protocolo MQTT en sistemas de control en tiempo real, implementando algoritmos de control distribuido mediante múltiples microcontroladores ESP32 que permitan desarrollar interfaces de usuario accesibles remotamente mediante tecnologías web estándar.
+
+El proyecto pretende aprovechar las características de velocidad variable del motor Dahlander para optimizar el perfil de movimiento del montacargas, integrando múltiples sensores para monitoreo ambiental y control preciso de posición. Todo esto se enmarca en la creación de un sistema modular y escalable que pueda adaptarse a diferentes aplicaciones industriales similares, proporcionando una base sólida para futuras expansiones.
+
+Además de los objetivos técnicos, este proyecto permite adquirir experiencia práctica en el diseño, implementación y depuración de sistemas IoT complejos que involucran hardware, firmware, comunicaciones inalámbricas y desarrollo web, competencias fundamentales para el desarrollo profesional en el ámbito de la automatización industrial moderna.
+
+\subsection{Alcance}
+
+El alcance de este proyecto comprende el diseño e implementación completa de un sistema IoT para control automatizado de montacargas, incluyendo:
+
+\textbf{Alcance incluido:}
+\begin{itemize}
+    \item Desarrollo de firmware para dos microcontroladores ESP32 (módulo de sensores y módulo de control)
+    \item Implementación de comunicación MQTT entre módulos con broker centralizado
+    \item Sistema de adquisición de datos ambientales (temperatura, humedad, luminosidad) y de posición (distancia ultrasónica)
+    \item Algoritmo de control de posición con perfil de velocidad trapezoidal
+    \item Interfaz web para monitoreo y control remoto
+    \item Display LCD para visualización local del estado del sistema
+    \item Control del motor Dahlander mediante módulo de relés con dos velocidades
+    \item Mecanismos de seguridad (bloqueo durante movimiento, validación de datos, reconexión automática)
+    \item Documentación técnica completa del sistema
+\end{itemize}
+
+\textbf{Alcance excluido:}
+\begin{itemize}
+    \item Implementación física del sistema mecánico completo del montacargas
+    \item Certificaciones de seguridad industrial
+    \item Sistema de alimentación de respaldo (UPS)
+    \item Interfaz móvil nativa (iOS/Android)
+    \item Almacenamiento histórico de datos (base de datos)
+    \item Sistema de notificaciones por correo electrónico o SMS
+    \item Control de acceso con autenticación de usuarios
+\end{itemize}
+
+El proyecto se centra en demostrar la funcionalidad del sistema de control IoT mediante prototipos funcionales que pueden validarse en entorno de laboratorio.
+
+\section{Objetivos}
+
+\subsection{Objetivo general}
+
+Diseñar e implementar un sistema de control automatizado basado en tecnologías IoT para un montacargas industrial equipado con motor Dahlander, que permita el posicionamiento preciso, monitoreo de variables ambientales y operación remota mediante interfaz web.
+
+\subsection{Objetivos específicos}
+
+\begin{enumerate}
+    \item Desarrollar una arquitectura IoT distribuida basada en microcontroladores ESP32 que se comuniquen mediante el protocolo MQTT para separar las funciones de adquisición de datos y control del sistema.
+    
+    \item Implementar un sistema de adquisición de datos que integre sensores de posición (HC-SR04), temperatura y humedad (DHT11), y luminosidad (LDR) con filtrado digital para garantizar mediciones confiables.
+    
+    \item Diseñar e implementar un algoritmo de control de posición basado en retroalimentación del sensor ultrasónico que permita posicionar el montacargas en cuatro plantas predefinidas con precisión de $\pm$1 cm.
+    
+    \item Desarrollar un sistema de control de velocidad variable que aproveche las dos velocidades del motor Dahlander mediante un perfil trapezoidal para optimizar tiempos de desplazamiento minimizando oscilaciones.
+    
+    \item Implementar mecanismos de seguridad que incluyan bloqueo de comandos durante operación, validación de integridad de datos del sensor y reconexión automática al broker MQTT.
+    
+    \item Crear una interfaz web responsive que permita el control remoto del sistema, visualización en tiempo real de telemetría y gestión del estado operativo desde cualquier dispositivo con navegador.
+    
+    \item Integrar un display LCD I2C para proporcionar visualización local del estado del sistema independiente de la conectividad de red.
+    
+    \item Implementar integración con servicios web externos mediante el consumo de una API REST de noticias que enriquezca la interfaz web con información actualizada y demuestre la capacidad de comunicación bidireccional con Internet.
+    
+    \item Documentar completamente el sistema incluyendo esquemas de conexión, especificaciones técnicas, procedimientos de configuración y código fuente comentado.
+\end{enumerate}
+
+\section{Fundamentos Teóricos}
+\subsection{Internet de las Cosas (IoT)}
+
+\subsubsection{Definición y características}
+
+El Internet de las Cosas (IoT, por sus siglas en inglés) se define como una red de dispositivos físicos interconectados que poseen capacidades de procesamiento, sensado y comunicación, permitiéndoles recopilar, intercambiar y actuar sobre datos sin intervención humana directa.
+
+Las características fundamentales de los sistemas IoT se manifiestan en varios aspectos clave. La conectividad representa la capacidad de comunicación mediante protocolos estándar como WiFi, Bluetooth o LoRa, permitiendo que los dispositivos se integren en redes existentes. Cada dispositivo debe poseer una identificación única en la red para facilitar su gestión y control individualizado. El procesamiento distribuido, también conocido como edge computing, permite que la inteligencia esté embebida directamente en los dispositivos, reduciendo la latencia y la dependencia de servicios centralizados.
+
+La interoperabilidad asegura la capacidad de trabajar con diferentes plataformas y dispositivos de diversos fabricantes, mientras que la escalabilidad facilita la incorporación de nuevos dispositivos a la red sin requerir reconfiguraciones complejas. Finalmente, la autonomía permite que el sistema opere con mínima intervención humana, tomando decisiones basadas en los datos recopilados y las reglas programadas.
+
+\subsubsection{Arquitectura de sistemas IoT}
+
+La arquitectura típica de un sistema IoT se estructura en capas:
+
+\begin{enumerate}
+    \item \textbf{Capa de percepción:} Sensores y actuadores que interactúan con el entorno físico
+    \item \textbf{Capa de red:} Infraestructura de comunicación (gateways, routers, protocolos)
+    \item \textbf{Capa de procesamiento:} Servidores y servicios en la nube o locales que procesan datos
+    \item \textbf{Capa de aplicación:} Interfaces de usuario y lógica de negocio
+\end{enumerate}
+
+En este proyecto, el módulo de sensores ESP32 constituye la capa de percepción, la comunicación WiFi y MQTT conforman la capa de red, el broker Mosquitto y el módulo de control representan la capa de procesamiento, y la interfaz web junto con el LCD forman la capa de aplicación.
+
+\subsubsection{Protocolos de comunicación}
+
+Los sistemas IoT emplean diversos protocolos según los requisitos de latencia, ancho de banda y consumo energético:
+
+\begin{itemize}
+    \item \textbf{HTTP/HTTPS:} Protocolo web estándar, alto overhead pero universal
+    \item \textbf{MQTT:} Protocolo ligero publicador-suscriptor, ideal para IoT
+    \item \textbf{CoAP:} Protocolo optimizado para dispositivos con recursos limitados
+    \item \textbf{WebSocket:} Comunicación bidireccional full-duplex sobre TCP
+    \item \textbf{LoRaWAN:} Protocolo de largo alcance y bajo consumo para sensores remotos
+\end{itemize}
+
+Para este proyecto se seleccionó MQTT debido a su bajo overhead de comunicación, modelo publicador-suscriptor que permite desacoplar productores y consumidores de datos, y amplio soporte en microcontroladores ESP32.
+
+\subsection{Protocolo MQTT}
+
+\subsubsection{Características del protocolo}
+
+MQTT (Message Queuing Telemetry Transport) es un protocolo de mensajería ligero diseñado específicamente para redes con ancho de banda limitado y dispositivos con recursos restringidos. Fue desarrollado originalmente por IBM en 1999 y estandarizado por OASIS en 2013.
+
+Características principales:
+\begin{itemize}
+    \item Overhead mínimo (cabecera de 2 bytes)
+    \item Implementación simple y ligera
+    \item Soporte para comunicación asíncrona
+    \item Mecanismos de calidad de servicio (QoS)
+    \item Retención de mensajes
+    \item Last Will and Testament (LWT) para detección de desconexiones
+    \item Operación sobre TCP/IP
+\end{itemize}
+
+\subsubsection{Modelo publicador-suscriptor}
+
+MQTT implementa el patrón publicador-suscriptor (pub-sub), que desacopla los productores de datos (publicadores) de los consumidores (suscriptores) mediante un intermediario (broker):
+
+\begin{itemize}
+    \item \textbf{Publicadores:} Clientes que envían mensajes a tópicos específicos
+    \item \textbf{Suscriptores:} Clientes que se registran para recibir mensajes de tópicos de interés
+    \item \textbf{Broker:} Servidor central que gestiona suscripciones y distribuye mensajes
+    \item \textbf{Tópicos:} Jerarquías de categorías que organizan los mensajes (ej: \texttt{montacargas/sensores/distancia})
+\end{itemize}
+
+Este modelo permite:
+\begin{itemize}
+    \item Escalabilidad: múltiples suscriptores pueden recibir el mismo mensaje
+    \item Flexibilidad: los publicadores no necesitan conocer a los suscriptores
+    \item Desacoplamiento temporal: los mensajes pueden ser entregados aunque el suscriptor no esté conectado (con QoS apropiado)
+\end{itemize}
+
+\subsubsection{Broker MQTT}
+
+El broker MQTT es el componente central que gestiona todas las comunicaciones del sistema. Sus funciones abarcan la autenticación y autorización de clientes que desean conectarse, garantizando que solo dispositivos autorizados puedan publicar o suscribirse a tópicos. Además, gestiona las suscripciones y realiza el filtrado de mensajes, asegurando que cada cliente reciba únicamente los mensajes relevantes según sus suscripciones activas.
+
+El broker también se encarga de la distribución eficiente de mensajes según los tópicos especificados, implementando las políticas de calidad de servicio (QoS) acordadas entre publicadores y suscriptores. Adicionalmente, puede retener mensajes para entregarlos a nuevos suscriptores que se conecten posteriormente, y gestionar sesiones persistentes que permiten a los clientes reconectar sin pérdida de información.
+
+En este proyecto se utiliza Mosquitto, un broker MQTT de código abierto desarrollado por Eclipse Foundation, ampliamente utilizado en aplicaciones IoT por su ligereza, estabilidad y conformidad con el estándar MQTT 3.1.1.
+
+\subsubsection{Calidad de servicio (QoS)}
+
+MQTT define tres niveles de QoS para garantizar la entrega de mensajes:
+
+\begin{itemize}
+    \item \textbf{QoS 0 (At most once):} Envío sin confirmación, entrega no garantizada. Mínimo overhead.
+    \item \textbf{QoS 1 (At least once):} Entrega garantizada al menos una vez, posibles duplicados.
+    \item \textbf{QoS 2 (Exactly once):} Entrega garantizada exactamente una vez, máximo overhead.
+\end{itemize}
+
+Para este proyecto se emplea QoS 0, ya que las mediciones de sensores se publican continuamente cada 250 ms, por lo que la pérdida ocasional de un mensaje no afecta significativamente al sistema de control.
+
+\subsection{Microcontrolador ESP32}
+
+\subsubsection{Características técnicas}
+
+El ESP32 es un microcontrolador de bajo costo y bajo consumo desarrollado por Espressif Systems, diseñado específicamente para aplicaciones IoT. En cuanto a su procesador, incorpora una CPU dual-core Xtensa LX6 de 32 bits capaz de operar a frecuencias de hasta 240 MHz, proporcionando potencia de cálculo suficiente para aplicaciones complejas. El sistema cuenta con 520 KB de SRAM para almacenamiento temporal de datos durante la ejecución, 448 KB de ROM que contiene el bootloader y funciones básicas del sistema, y 4 MB de memoria flash externa para almacenar el programa de usuario y datos persistentes.
+
+En cuanto a periféricos, el ESP32 dispone de 34 pines GPIO programables que pueden configurarse para múltiples propósitos. Incluye 18 canales de conversión analógico-digital (ADC) de 12 bits de resolución para lectura de sensores analógicos, y 2 canales de conversión digital-analógica (DAC) de 8 bits para generación de señales analógicas. El microcontrolador integra interfaces de comunicación estándar como I2C, SPI, UART e I2S, además de capacidades de modulación por ancho de pulso (PWM), contadores de pulsos, sensores táctiles capacitivos y un sensor de efecto Hall integrado.
+
+\subsubsection{Capacidades de conectividad}
+
+La principal ventaja del ESP32 para aplicaciones IoT son sus capacidades de conectividad inalámbrica integradas. En cuanto a WiFi, el dispositivo implementa el estándar IEEE 802.11 b/g/n operando en la banda de 2.4 GHz, con soporte para los modos Station (cliente WiFi), SoftAP (punto de acceso) y Station+SoftAP (ambos simultáneamente). Los protocolos de seguridad soportados incluyen WPA, WPA2, WPA2-Enterprise y WPS, garantizando conexiones seguras en diversos entornos. El alcance típico alcanza hasta 100 metros en espacio abierto, con consumo optimizado mediante modos de ahorro energético que permiten prolongar la vida útil en aplicaciones alimentadas por batería.
+
+Respecto a Bluetooth, el ESP32 integra tanto Bluetooth Classic versión 4.2 como BLE (Bluetooth Low Energy), ofreciendo compatibilidad con perfiles estándar como A2DP para transmisión de audio, SPP para comunicación serial, HFP para telefonía manos libres, entre otros. Una característica destacable es la capacidad de coexistencia WiFi/Bluetooth, permitiendo el uso simultáneo de ambas tecnologías sin interferencias mutuas.
+
+Estas capacidades permiten al ESP32 conectarse directamente a redes WiFi existentes sin necesidad de módulos externos, reduciendo significativamente los costos de implementación y la complejidad del diseño hardware.
+
+\subsubsection{Pines GPIO y periféricos}
+
+El ESP32 dispone de 34 pines GPIO multipropósito que pueden configurarse para diversas funciones según las necesidades de la aplicación. Estos pines pueden operar como entradas o salidas digitales convencionales, permitiendo la lectura de sensores digitales o el control de actuadores. También pueden funcionar como entradas analógicas mediante los conversores ADC integrados, o como salidas analógicas utilizando los DAC disponibles en los pines 25 y 26. Cualquier pin GPIO puede generar señales PWM para control de motores o atenuación de LEDs, y soportan múltiples protocolos de comunicación serial como UART, I2C y SPI, con posibilidad de asignar estos protocolos a diferentes pines según conveniencia.
+
+Es importante considerar ciertas restricciones en el uso de los pines. Los GPIO 6 al 11 están reservados para la comunicación con la memoria flash interna y no deben utilizarse en aplicaciones. Los pines GPIO 0, 2, 5, 12 y 15 tienen restricciones durante el proceso de arranque del microcontrolador, pudiendo afectar el modo de inicio si se conectan incorrectamente. Algunos pines, específicamente GPIO 34 al 39, son exclusivamente de entrada y no pueden configurarse como salidas. Finalmente, el voltaje de operación lógico es de 3.3V y los pines no son tolerantes a 5V, requiriendo conversores de nivel si se conectan a dispositivos que operan a voltajes superiores.
+
+En este proyecto se utilizan diversos GPIO para controlar relés, leer sensores digitales y analógicos, y comunicación I2C con el display LCD, aprovechando la flexibilidad de configuración que ofrece el ESP32.
+
+\subsection{Sensores y Actuadores}
+
+\subsubsection{Sensor ultrasónico HC-SR04}
+
+El HC-SR04 es un sensor de distancia por ultrasonidos ampliamente utilizado en robótica y automatización. Su principio de funcionamiento se basa en la emisión de un pulso ultrasónico de 40 kHz y la medición del tiempo que tarda el eco reflejado en retornar al sensor. La distancia se calcula mediante la fórmula $d = \frac{v \cdot t}{2}$ donde $v = 343$ m/s representa la velocidad del sonido en el aire y el factor 2 considera el viaje de ida y vuelta de la señal.
+
+Las especificaciones técnicas del sensor incluyen un rango de medición de 2 a 400 cm con una precisión de $\pm$ 3 mm en condiciones ideales. El ángulo de medición efectivo es de aproximadamente 15 grados, formando un cono de detección. El sensor puede operar a frecuencias de hasta 50 Hz, permitiendo actualizaciones rápidas de la medición. Requiere alimentación de 5V y se activa mediante un pulso trigger de 10 $\mu$s en su pin correspondiente.
+
+En este proyecto, el HC-SR04 se utiliza para determinar la posición del montacargas mediante la medición de la distancia a un punto de referencia fijo, proporcionando la retroalimentación necesaria para el sistema de control de posición.
+
+\subsubsection{Sensor de temperatura y humedad DHT11}
+
+El DHT11 es un sensor digital que proporciona mediciones de temperatura y humedad relativa con interfaz de un solo cable, simplificando su integración en proyectos electrónicos. El sensor opera en un rango de temperatura de 0°C a 50°C con una precisión de $\pm$ 2°C, suficiente para aplicaciones de monitoreo ambiental no críticas. En cuanto a humedad relativa, mide en el rango de 20\% a 90\% RH con una precisión de $\pm$ 5\%, proporcionando valores enteros con resolución de 1°C y 1\% RH.
+
+El sensor tiene una limitación de frecuencia de muestreo de 1 Hz máximo, requiriendo al menos un segundo entre lecturas consecutivas para garantizar mediciones válidas. Utiliza un protocolo propietario de comunicación serial que, si bien no es estándar, está ampliamente soportado por bibliotecas disponibles para múltiples plataformas. Puede alimentarse con voltajes entre 3.3V y 5V, siendo compatible directamente con el ESP32.
+
+El DHT11 se emplea en este proyecto para monitoreo de condiciones ambientales, proporcionando información relevante para verificar que el sistema opera dentro de condiciones operativas adecuadas y detectar posibles anomalías en el entorno.
+
+\subsubsection{Fotoresistor LDR}
+
+El LDR (Light Dependent Resistor) es un componente pasivo cuya resistencia eléctrica varía inversamente con la intensidad luminosa incidente sobre su superficie. En condiciones de oscuridad total, la resistencia del LDR supera 1 M$\Omega$, mientras que bajo iluminación intensa disminuye a valores inferiores a 1 k$\Omega$. Esta variación abarca aproximadamente tres órdenes de magnitud, proporcionando una respuesta sensible a cambios de luminosidad.
+
+La respuesta espectral del LDR se concentra en el rango de luz visible, específicamente entre 400 y 700 nm, siendo especialmente sensible a la luz amarillo-verdosa que corresponde al pico de sensibilidad del ojo humano. El tiempo de respuesta típico es de 20 a 30 ms tanto para incrementos como decrementos de iluminación, resultando adecuado para aplicaciones de detección de presencia de luz o cambios en la iluminación ambiental.
+
+En este proyecto se utiliza un módulo LDR con comparador integrado que proporciona salida digital, generando nivel HIGH cuando detecta oscuridad y LOW en presencia de luz. El umbral de conmutación es ajustable mediante un potenciómetro incorporado en el módulo. Esta configuración digital simplifica significativamente la interfaz con el ESP32, eliminando la necesidad de conversión analógico-digital y procesamiento de señal, permitiendo detectar directamente cambios en las condiciones de iluminación para activar el LED indicador cuando se requiere iluminación adicional.
+
+\subsubsection{Módulo de relés}
+
+Se emplea un módulo de 4 relés HW-316 para control de cargas de potencia (motor Dahlander).
+
+\textbf{Especificaciones:}
+\begin{itemize}
+    \item Número de canales: 4 relés independientes
+    \item Voltaje de control: 5V (compatible con ESP32 mediante level shifter interno)
+    \item Corriente de control: 15-20 mA por relé
+    \item Contactos: SPDT (común, NO, NC)
+    \item Capacidad de conmutación: 10A @ 250VAC / 10A @ 30VDC
+    \item Indicadores LED por canal
+    \item Optoacoplamiento para aislamiento galvánico
+\end{itemize}
+
+Los relés permiten al ESP32 controlar circuitos de potencia del motor trifásico sin riesgo de daño por sobrevoltaje o corrientes elevadas, proporcionando aislamiento eléctrico entre la lógica de control y la carga.
+
+\subsection{Motor Dahlander}
+
+El motor Dahlander es un motor asíncrono trifásico que permite operar a dos velocidades diferentes mediante la conmutación de sus bobinados. Este tipo de motor es ampliamente utilizado en aplicaciones industriales donde se requiere control de velocidad sin necesidad de variadores de frecuencia.
+
+\subsubsection{Principio de funcionamiento}
+
+El motor Dahlander basa su funcionamiento en la capacidad de modificar el número de polos activos del estator mediante la reconfiguración de las conexiones de sus bobinados. Según la ley de la velocidad síncrona:
+
+\begin{equation}
+n_s = \frac{120 \cdot f}{p}
+\end{equation}
+
+donde:
+\begin{itemize}
+    \item $n_s$ = velocidad síncrona (rpm)
+    \item $f$ = frecuencia de la red (Hz)
+    \item $p$ = número de polos
+\end{itemize}
+
+Al cambiar el número de polos activos, se modifica directamente la velocidad del motor. Típicamente, la relación de velocidades es de 1:2, aunque existen otras configuraciones.
+
+\subsubsection{Configuración de polos conmutables}
+
+Los bobinados del motor Dahlander pueden conectarse de dos formas principales:
+
+\begin{itemize}
+    \item \textbf{Conexión Dahlander (Y/YY):} Los bobinados se conectan en estrella simple para baja velocidad (más polos) o en doble estrella para alta velocidad (menos polos).
+    \item \textbf{Conexión Dahlander ($\Delta$/YY):} Los bobinados se conectan en triángulo para baja velocidad o en doble estrella para alta velocidad.
+\end{itemize}
+
+La conmutación entre configuraciones se realiza mediante contactores o relés que reconfiguran las conexiones de los terminales del motor según la velocidad deseada.
+
+\subsubsection{Aplicaciones industriales}
+
+Los motores Dahlander son especialmente útiles en:
+\begin{itemize}
+    \item Ascensores y montacargas (arranque y parada suaves)
+    \item Ventiladores industriales (control de caudal de aire)
+    \item Bombas (control de flujo)
+    \item Máquinas herramienta (diferentes velocidades de trabajo)
+    \item Cintas transportadoras (carga variable)
+\end{itemize}
+
+\subsubsection{Control de velocidad mediante relés}
+
+En este proyecto, se emplean 4 relés para controlar el motor Dahlander:
+
+\begin{enumerate}
+    \item \textbf{Relé 1 (GPIO 26):} Control de subida a velocidad lenta - Activa la configuración de más polos para movimiento ascendente controlado
+    \item \textbf{Relé 2 (GPIO 25):} Control de bajada a velocidad lenta - Activa la configuración de más polos para movimiento descendente controlado
+    \item \textbf{Relé 3 (GPIO 27):} Activación de velocidad alta - Conmuta el motor a la configuración de menos polos para desplazamiento rápido
+    \item \textbf{Relé 4 (GPIO 14):} Alimentación general del motor - Control maestro de potencia al sistema motriz
+\end{enumerate}
+
+La secuencia de activación de los relés debe seguir un orden específico para evitar:
+\begin{itemize}
+    \item Cortocircuitos en los bobinados durante la transición
+    \item Picos de corriente excesivos
+    \item Desgaste prematuro de contactos
+    \item Esfuerzos mecánicos perjudiciales en la transmisión
+\end{itemize}
+
+El sistema implementa transiciones controladas con tiempos de espera entre conmutaciones para garantizar la seguridad y durabilidad del equipo.
+
+\section{Diseño del Sistema}
+
+\subsection{Arquitectura general}
+
+El sistema implementa una arquitectura IoT distribuida basada en el patrón publicador-suscriptor mediante MQTT, compuesta por cuatro elementos principales que interactúan de forma coordinada. El Módulo de Sensores, basado en el primer ESP32, asume la responsabilidad de la adquisición de datos ambientales y de posición, actuando como publicador MQTT que envía continuamente telemetría al sistema. El Broker MQTT, implementado con Mosquitto, actúa como intermediario de comunicaciones ejecutándose en un computador portátil conectado a la misma red WiFi, garantizando la entrega de mensajes entre los módulos. El Módulo de Control, basado en el segundo ESP32, opera como suscriptor MQTT recibiendo la telemetría, ejecutando la lógica de control del motor y proporcionando interfaces de usuario tanto web como LCD para monitoreo y operación. Finalmente, el Motor Dahlander constituye el actuador principal del sistema, controlado mediante un módulo de 4 relés conectados al módulo de control.
+
+Esta arquitectura distribuida ofrece ventajas significativas en términos de modularidad, al proporcionar una separación clara de responsabilidades entre sensado y control, facilitando el mantenimiento y actualización independiente de cada subsistema. La escalabilidad se ve favorecida por la facilidad para agregar nuevos sensores o actuadores sin requerir modificaciones profundas en la arquitectura existente. La mantenibilidad mejora considerablemente, ya que las modificaciones en un módulo no afectan directamente al otro, permitiendo desarrollo y pruebas independientes. En cuanto a fiabilidad, el fallo de un módulo no compromete completamente el sistema, pudiendo implementarse redundancias en componentes críticos. La flexibilidad arquitectónica permite ubicar los módulos físicamente separados, aprovechando la comunicación inalámbrica para distribuir el sistema según las necesidades espaciales de la instalación.
+
+\subsection{Diagrama de bloques}
+
+El flujo de información en el sistema sigue esta secuencia:
+
+\begin{enumerate}
+    \item El \textbf{módulo de sensores} lee datos de:
+    \begin{itemize}
+        \item Sensor HC-SR04 (distancia cada 250 ms con filtro de mediana)
+        \item Sensor DHT11 (temperatura y humedad cada 2 s)
+        \item Módulo LDR (luminosidad como evento digital)
+    \end{itemize}
+    
+    \item Los datos se publican a los tópicos MQTT:
+    \begin{itemize}
+        \item \texttt{montacargas/sensores/distancia}
+        \item \texttt{montacargas/sensores/temperatura}
+        \item \texttt{montacargas/sensores/humedad}
+        \item \texttt{montacargas/sensores/luminosidad}
+    \end{itemize}
+    
+    \item El \textbf{broker MQTT} retransmite los mensajes a todos los suscriptores interesados.
+    
+    \item El \textbf{módulo de control}:
+    \begin{itemize}
+        \item Recibe y procesa la telemetría
+        \item Ejecuta el algoritmo de control de posición
+        \item Actualiza el display LCD local
+        \item Sirve la interfaz web con datos en tiempo real
+        \item Activa/desactiva relés según la lógica de control
+    \end{itemize}
+    
+    \item Los \textbf{relés} conmutan las conexiones del motor Dahlander según comandos recibidos.
+    
+    \item El \textbf{motor Dahlander} mueve el montacargas, modificando la distancia medida por el sensor, cerrando el lazo de control.
+\end{enumerate}
+
+\subsection{Comunicación entre módulos}
+
+La comunicación entre módulos se realiza exclusivamente mediante MQTT sobre WiFi, proporcionando un medio de intercambio de datos eficiente y confiable. El protocolo de red utilizado es WiFi 802.11n operando en la banda de 2.4 GHz, estableciendo una red local que no requiere acceso a internet para su funcionamiento. Los módulos ESP32 obtienen sus direcciones IP mediante DHCP de forma automática, mientras que el broker debe ubicarse en una IP estática o al menos conocida por los clientes para garantizar la conectividad.
+
+Respecto al protocolo MQTT, la configuración emplea el puerto estándar 1883 sin encriptación TLS, priorizando la simplicidad en el entorno de desarrollo sobre la seguridad que sería necesaria en un despliegue productivo. Se utiliza QoS nivel 0, que proporciona entrega sin confirmación y no garantizada, adecuada para datos de sensores que se actualizan frecuentemente. Los mensajes no se retienen en el broker, y las sesiones se configuran como no persistentes (clean session activo), simplificando la gestión de conexiones. El intervalo de keep alive se establece en 15 segundos, permitiendo al broker detectar clientes desconectados en un tiempo razonable.
+
+El formato de los mensajes transmitidos utiliza cadenas de texto con formato decimal para datos numéricos, como por ejemplo "23.5" para representar temperatura. Esta decisión facilita considerablemente el debugging y visualización de datos durante el desarrollo, aunque implica un overhead ligeramente mayor que formatos binarios. En recepción, la conversión se realiza mediante la función estándar \texttt{atof()} de C, proporcionando simplicidad y portabilidad.
+
+La gestión de errores implementa reconexión automática al broker cada 5 segundos si se detecta pérdida de conexión, asegurando que interrupciones temporales de red no requieran intervención manual. Los datos recibidos se validan contra rangos esperados antes de su uso en la lógica de control, descartando valores fuera de especificación que pudieran indicar fallos de transmisión. Se implementan timeouts de sensores para detectar fallos en el módulo de adquisición, y ante pérdida de comunicación, el sistema adopta un estado seguro deteniendo el motor para prevenir operación impredecible.
+
+\subsection{Módulo de Sensores}
+
+\subsubsection{Componentes hardware}
+
+El módulo de sensores integra los siguientes componentes conectados a un ESP32:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Componente} & \textbf{Modelo} & \textbf{Función} \\
+\hline
+Microcontrolador & ESP32 DevKit & Procesamiento y comunicación WiFi \\
+Sensor ultrasónico & HC-SR04 & Medición de distancia (2-400 cm) \\
+Sensor temp/humedad & DHT11 & Monitoreo ambiental \\
+Fotoresistor & Módulo LDR digital & Detección de luminosidad \\
+Fuente de alimentación & 5V 2A & Alimentación del circuito \\
+\hline
+\end{tabular}
+\caption{Componentes del módulo de sensores}
+\end{table}
+
+\subsubsection{Esquema de conexiones}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Componente} & \textbf{Pin ESP32} & \textbf{Señal} \\
+\hline
+HC-SR04 TRIG & GPIO 5 & Trigger ultrasónico \\
+HC-SR04 ECHO & GPIO 18 & Echo ultrasónico \\
+HC-SR04 VCC & 5V & Alimentación \\
+HC-SR04 GND & GND & Tierra \\
+\hline
+DHT11 Data & GPIO 4 & Bus de datos digital \\
+DHT11 VCC & 3.3V & Alimentación \\
+DHT11 GND & GND & Tierra \\
+\hline
+LDR OUT & GPIO 34 & Salida digital (HIGH=oscuro) \\
+LDR VCC & 3.3V & Alimentación \\
+LDR GND & GND & Tierra \\
+\hline
+\end{tabular}
+\caption{Conexiones del módulo de sensores}
+\end{table}
+
+\subsubsection{Función del módulo}
+
+El módulo de sensores ejecuta un bucle principal que:
+
+\begin{enumerate}
+    \item \textbf{Adquisición de datos ultrasónicos (250 ms):}
+    \begin{itemize}
+        \item Lee 5 muestras consecutivas del HC-SR04
+        \item Aplica filtro de mediana para eliminar valores atípicos
+        \item Valida que la medición esté en rango válido (2-400 cm)
+        \item Publica resultado a \texttt{montacargas/sensores/distancia}
+    \end{itemize}
+    
+    \item \textbf{Adquisición de datos ambientales (2 segundos):}
+    \begin{itemize}
+        \item Lee temperatura del DHT11
+        \item Lee humedad relativa del DHT11
+        \item Valida lecturas exitosas del sensor
+        \item Publica a tópicos correspondientes
+    \end{itemize}
+    
+    \item \textbf{Monitoreo de luminosidad (continuo):}
+    \begin{itemize}
+        \item Lee estado digital del módulo LDR
+        \item Detecta cambios de estado (claro $\leftrightarrow$ oscuro)
+        \item Publica eventos de cambio
+    \end{itemize}
+    
+    \item \textbf{Gestión de comunicación MQTT:}
+    \begin{itemize}
+        \item Mantiene conexión WiFi activa
+        \item Reconecta al broker si es necesario
+        \item Monitoriza latencia de publicación
+    \end{itemize}
+\end{enumerate}
+
+El filtro de mediana implementado para el sensor ultrasónico es crítico para la estabilidad del sistema de control, ya que elimina lecturas erróneas causadas por reflexiones múltiples o interferencias acústicas.
+
+\subsection{Módulo de Control}
+
+\subsubsection{Componentes hardware}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Componente} & \textbf{Modelo} & \textbf{Función} \\
+\hline
+Microcontrolador & ESP32 DevKit & Procesamiento y control \\
+Módulo de relés & HW-316 (4 canales) & Control del motor Dahlander \\
+Display LCD & 16x2 I2C (0x27) & Interfaz de usuario local \\
+LED indicador & LED 5mm & Iluminación automática \\
+Resistencia LED & 220 $\Omega$ & Limitación de corriente \\
+Fuente alimentación & 5V 3A & Alimentación circuito + relés \\
+\hline
+\end{tabular}
+\caption{Componentes del módulo de control}
+\end{table}
+
+\subsubsection{Esquema de conexiones}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Componente} & \textbf{Pin ESP32} & \textbf{Función} \\
+\hline
+Relé 1 (IN1) & GPIO 26 & Control subida lenta \\
+Relé 2 (IN2) & GPIO 25 & Control bajada lenta \\
+Relé 3 (IN3) & GPIO 27 & Control velocidad alta \\
+Relé 4 (IN4) & GPIO 14 & Alimentación motor \\
+\hline
+LCD SDA & GPIO 21 & Bus I2C datos \\
+LCD SCL & GPIO 22 & Bus I2C reloj \\
+\hline
+LED ánodo & GPIO 2 & Salida digital \\
+LED cátodo & GND & Tierra (con resistencia) \\
+\hline
+\end{tabular}
+\caption{Conexiones del módulo de control}
+\end{table}
+
+\textbf{Nota importante:} El módulo de relés requiere lógica invertida (LOW=activo, HIGH=inactivo) debido al optoacoplador interno.
+
+\subsubsection{Función del módulo}
+
+El módulo de control es el cerebro del sistema, ejecutando múltiples tareas concurrentes:
+
+\begin{enumerate}
+    \item \textbf{Suscripción y procesamiento MQTT:}
+    \begin{itemize}
+        \item Recibe telemetría de los 4 tópicos de sensores
+        \item Actualiza variables globales con datos recibidos
+        \item Controla LED según luminosidad ambiental
+        \item Detecta pérdida de señal de sensores
+    \end{itemize}
+    
+    \item \textbf{Algoritmo de control de posición:}
+    \begin{itemize}
+        \item Determina planta actual basándose en distancia medida
+        \item Compara posición actual vs. destino solicitado
+        \item Calcula dirección y velocidad requeridas
+        \item Activa combinación apropiada de relés
+        \item Implementa zonas de velocidad variable (perfil trapezoidal)
+        \item Detecta llegada a destino ($\pm$1 cm de tolerancia)
+    \end{itemize}
+    
+    \item \textbf{Servidor web HTTP:}
+    \begin{itemize}
+        \item Sirve interfaz HTML/CSS/JavaScript
+        \item Endpoints REST para comandos (ir a planta, encender/apagar)
+        \item Endpoint JSON para telemetría en tiempo real
+        \item Actualización asíncrona vía AJAX cada 1 segundo
+    \end{itemize}
+    
+    \item \textbf{Actualización de display LCD:}
+    \begin{itemize}
+        \item Muestra planta actual y estado del sistema
+        \item Indica movimiento en progreso
+        \item Muestra mensajes de error si pierden comunicaciones
+    \end{itemize}
+    
+    \item \textbf{Mecanismos de seguridad:}
+    \begin{itemize}
+        \item Bloquea nuevos comandos durante movimiento
+        \item Valida datos de sensor antes de actuar
+        \item Detiene motor si se pierde señal del sensor
+        \item Implementa flag de destino alcanzado para evitar oscilaciones
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Sistema de Control del Motor Dahlander}
+
+El control del motor Dahlander constituye uno de los elementos centrales del sistema, permitiendo el desplazamiento del montacargas con velocidad variable según la fase del movimiento.
+
+\subsubsection{Configuración de relés}
+
+Se emplea un módulo de 4 relés HW-316 conectado al ESP32 mediante las siguientes asignaciones:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|l|}
+\hline
+\textbf{Relé} & \textbf{Pin GPIO} & \textbf{Función} \\
+\hline
+Relé 1 & GPIO 26 & Control motor - Subida lenta \\
+Relé 2 & GPIO 25 & Control motor - Bajada lenta \\
+Relé 3 & GPIO 27 & Control motor - Velocidad alta \\
+Relé 4 & GPIO 14 & Control motor - Alimentación general \\
+\hline
+\end{tabular}
+\caption{Asignación de relés para control del motor Dahlander}
+\end{table}
+
+Los relés actúan sobre los contactores del motor, reconfigurando las conexiones de los bobinados para lograr las dos velocidades características del motor Dahlander. La configuración específica depende del tipo de motor (Y/YY o $\Delta$/YY) y el esquema de cableado implementado.
+
+\subsubsection{Lógica de control de velocidades}
+
+El sistema implementa un perfil de velocidad trapezoidal que aprovecha las dos velocidades del motor:
+
+\begin{enumerate}
+    \item \textbf{Fase de arranque (primeros 4 cm):}
+    \begin{itemize}
+        \item Se activa el Relé 4 (alimentación general)
+        \item Se activa el Relé 1 o 2 según dirección (subida/bajada)
+        \item El motor opera en configuración de velocidad LENTA (más polos)
+        \item Permite un arranque suave sin sacudidas bruscas
+    \end{itemize}
+    
+    \item \textbf{Fase de crucero (trayecto medio):}
+    \begin{itemize}
+        \item Se mantiene la alimentación (Relé 4 activo)
+        \item Se activa el Relé 3 (velocidad alta)
+        \item El motor conmuta a configuración de velocidad RÁPIDA (menos polos)
+        \item Optimiza el tiempo de desplazamiento
+    \end{itemize}
+    
+    \item \textbf{Fase de frenado (últimos 4 cm):}
+    \begin{itemize}
+        \item Se desactiva el Relé 3
+        \item Se retorna a velocidad LENTA
+        \item Permite posicionamiento preciso en destino
+        \item Reduce el desgaste mecánico por frenado brusco
+    \end{itemize}
+\end{enumerate}
+
+El algoritmo de control monitoriza continuamente la distancia medida por el sensor ultrasónico y determina en qué fase debe operar el motor, ejecutando las conmutaciones correspondientes.
+
+\subsubsection{Secuencias de conmutación}
+
+Las transiciones entre velocidades deben realizarse siguiendo secuencias específicas para proteger el motor y el sistema mecánico:
+
+\textbf{Secuencia de inicio de movimiento:}
+\begin{enumerate}
+    \item Verificar que el sistema está detenido
+    \item Activar Relé 4 (alimentación)
+    \item Esperar estabilización (50-100 ms)
+    \item Activar Relé 1 o 2 según dirección
+    \item Monitorizar corriente de arranque
+\end{enumerate}
+
+\textbf{Secuencia de cambio a velocidad alta:}
+\begin{enumerate}
+    \item Verificar que el motor está en marcha
+    \item Desactivar brevemente alimentación (Relé 4)
+    \item Activar Relé 3 (velocidad alta)
+    \item Reactivar Relé 4
+    \item Confirmar transición exitosa
+\end{enumerate}
+
+\textbf{Secuencia de parada:}
+\begin{enumerate}
+    \item Retornar a velocidad lenta (desactivar Relé 3)
+    \item Esperar reducción de velocidad
+    \item Desactivar Relé 1 o 2 (dirección)
+    \item Desactivar Relé 4 (alimentación)
+    \item Confirmar motor detenido
+\end{enumerate}
+
+Estas secuencias están implementadas en el código del módulo de control con validaciones y tiempos de espera apropiados para garantizar operación segura y eficiente del motor Dahlander.
+
+\section{Implementación}
+
+\subsection{Configuración del entorno de desarrollo}
+
+El desarrollo del firmware se realizó utilizando el IDE de Arduino, que proporciona un entorno simplificado para programación de microcontroladores ESP32.
+
+\textbf{Requisitos de software:}
+\begin{itemize}
+    \item Arduino IDE versión 1.8.x o superior
+    \item Soporte para placas ESP32 (instalado mediante gestor de tarjetas)
+    \item Driver USB-Serial CH340/CP2102 según modelo del DevKit
+\end{itemize}
+
+\textbf{Bibliotecas necesarias:}
+
+Para el módulo de sensores:
+\begin{itemize}
+    \item \texttt{WiFi.h} - Incluida en núcleo ESP32
+    \item \texttt{PubSubClient} by Nick O'Leary - Cliente MQTT
+    \item \texttt{DHT sensor library} by Adafruit - Lectura DHT11
+    \item \texttt{Adafruit Unified Sensor} - Dependencia de DHT
+\end{itemize}
+
+Para el módulo de control:
+\begin{itemize}
+    \item \texttt{WiFi.h} - Incluida en núcleo ESP32
+    \item \texttt{WebServer.h} - Servidor HTTP embebido
+    \item \texttt{PubSubClient} - Cliente MQTT
+    \item \texttt{LiquidCrystal\_I2C} by Frank de Brabander - Control LCD
+\end{itemize}
+
+\textbf{Configuración del IDE:}
+\begin{itemize}
+    \item Placa: ESP32 Dev Module
+    \item Velocidad de carga: 115200 baud
+    \item Frecuencia CPU: 240 MHz
+    \item Tamaño de partición: Default 4MB
+    \item Puerto serie: Según detección automática del sistema
+\end{itemize}
+
+\subsection{Broker MQTT}
+
+\subsubsection{Instalación de Mosquitto}
+
+El broker MQTT se instala en un computador con Windows que actuará como servidor central:
+
+\begin{enumerate}
+    \item Descargar instalador desde \url{https://mosquitto.org/download/}
+    \item Ejecutar instalador con privilegios de administrador
+    \item Seleccionar instalación completa incluyendo el servicio
+    \item Instalar en ruta por defecto: \texttt{C:\textbackslash Program Files\textbackslash mosquitto}
+\end{enumerate}
+
+\subsubsection{Configuración del broker}
+
+El archivo de configuración \texttt{mosquitto.conf} debe crearse en el directorio de instalación especificando el puerto de escucha 1883, permitiendo conexiones anónimas para simplicidad en entorno de desarrollo (\texttt{allow\_anonymous true}), y opcionalmente configurando un archivo de log. En producción se recomienda habilitar autenticación con usuario/contraseña.
+
+\subsubsection{Seguridad y firewall}
+
+Para permitir conexiones desde la red local, es necesario configurar el firewall de Windows creando una regla de entrada para el puerto TCP 1883. El servicio puede iniciarse manualmente mediante \texttt{net start mosquitto} o configurarse para inicio automático desde Servicios de Windows. La dirección IPv4 de la interfaz de red activa (obtenible mediante \texttt{ipconfig}) debe configurarse en ambos ESP32 como \texttt{mqtt\_server}.
+
+\textbf{Nota:} Los scripts de configuración completos están disponibles en el repositorio del proyecto: \url{https://github.com/pnavarro3/ProyectoIoT}
+
+\subsection{Implementación del módulo de sensores}
+
+\subsubsection{Adquisición de datos}
+
+El módulo de sensores implementa un sistema de adquisición de datos que gestiona la lectura periódica de todos los sensores conectados. Las variables globales definen los pines GPIO utilizados (TRIG=5, ECHO=18, LDR=34, DHT=4) y el intervalo de muestreo de 250 milisegundos para el sensor ultrasónico.
+
+La función principal ejecutada en el bucle \texttt{loop()} mantiene la conexión MQTT activa, lee el sensor ultrasónico y el LDR cada 250ms, mientras que el sensor DHT11, más lento, se muestrea cada 2 segundos. Los datos validados se publican mediante MQTT a sus respectivos tópicos.
+
+\subsubsection{Filtro de mediana para mediciones ultrasónicas}
+
+Para eliminar lecturas erróneas del sensor HC-SR04, se implementa un filtro de mediana de 5 muestras. El algoritmo toma cinco lecturas consecutivas del sensor con una pequeña pausa de 10ms entre cada una, valida que estén dentro del rango especificado (2-400 cm), ordena las muestras válidas y retorna el valor mediano. Se requieren al menos 3 muestras válidas para calcular la mediana; en caso contrario, la función retorna -1 indicando error. Este filtro proporciona mediciones estables eliminando valores atípicos causados por reflexiones espurias.
+
+\subsubsection{Publicación MQTT}
+
+La función de publicación construye mensajes formateados y los envía al broker en los tópicos correspondientes. Para la distancia, si es válida (mayor que cero), se convierte a string con formato decimal y se publica en \texttt{montacargas/sensores/distancia}. La luminosidad se publica como entero en su tópico específico. Los datos de temperatura y humedad solo se publican cuando están disponibles (cada 2 segundos), validándose que sean mayores que cero para evitar publicar valores de error.
+
+\subsection{Implementación del módulo de control}
+
+\subsubsection{Suscripción a tópicos MQTT}
+
+El módulo de control se suscribe a los cuatro tópicos de telemetría utilizando un wildcard (\texttt{montacargas/sensores/\#}) y procesa los mensajes mediante una función callback. Esta función identifica el tópico recibido, convierte el payload a los tipos de datos apropiados (float para distancia/temperatura/humedad, int para luminosidad), actualiza las variables globales correspondientes, y ejecuta acciones asociadas como el control del LED según la luminosidad detectada.
+
+\subsubsection{Algoritmo de control de posición}
+
+El algoritmo implementa un ciclo continuo que valida los datos del sensor (verificando que sean recientes y válidos), determina la planta actual por proximidad, calcula la distancia al destino y verifica si se ha alcanzado dentro de la tolerancia. Si el destino no se ha alcanzado, determina la dirección de movimiento y aplica el perfil de velocidad trapezoidal: velocidad baja cuando la diferencia es menor o igual a 4 cm (zona de frenado), velocidad alta en caso contrario. El LCD se actualiza continuamente reflejando el estado del sistema.
+
+\subsubsection{Control de velocidad trapezoidal}
+
+La función de control del motor implementa el perfil de velocidad mediante la activación secuencial de los relés. Primero se activa el relé de alimentación general (RELÉ4), luego se activa el relé de dirección apropiado (RELÉ1 para subir o RELÉ2 para bajar, desactivando el opuesto), y finalmente se conmuta la velocidad activando o desactivando el RELÉ3. La función de detención desactiva todos los relés en secuencia, cortando la alimentación al final. Se incluyen pequeñas pausas de estabilización entre conmutaciones.
+
+\subsubsection{Mecanismos de seguridad}
+
+Se implementan múltiples capas de seguridad mediante una función de validación que verifica: el rango válido de planta (0-3), el bloqueo si hay un movimiento en progreso (consultando el flag \texttt{destinoAlcanzado}), y la disponibilidad de datos del sensor (distancia mayor que cero). Solo si todas las validaciones son exitosas se acepta el comando, se establece el destino y se desactiva el flag de destino alcanzado.
+
+\subsection{Interfaz web}
+
+\subsubsection{Servidor HTTP embebido}
+
+El ESP32 implementa un servidor web que responde a peticiones HTTP en el puerto 80, definiendo rutas para la página principal, consulta de estado en formato JSON, comandos de movimiento a cada planta (0-3), y control de encendido/apagado del sistema. El servidor procesa las peticiones de forma continua en el bucle principal.
+
+\subsubsection{Diseño de la interfaz}
+
+La interfaz web es responsive y se genera dinámicamente en HTML con CSS embebido. Incluye un panel de telemetría mostrando planta actual, temperatura, humedad, luminosidad y estado del sistema. Los botones de control para cada planta se deshabilitan automáticamente cuando el montacargas está en movimiento, mostrando además un mensaje de advertencia visual.
+
+\subsubsection{Comunicación asíncrona (AJAX)}
+
+La interfaz se actualiza automáticamente cada segundo mediante JavaScript utilizando la API Fetch. Solicita el endpoint \texttt{/estado} que retorna un JSON con todos los datos de telemetría, actualiza los elementos del DOM con los nuevos valores, y gestiona el estado de habilitación/deshabilitación de los botones según si el sistema está en movimiento o parado.
+
+\subsection{Display LCD}
+
+\subsubsection{Configuración I2C}
+
+El LCD se controla mediante el protocolo I2C utilizando la biblioteca \texttt{LiquidCrystal\_I2C}. Se configura con dirección 0x27 y tamaño 16x2 caracteres. Durante la inicialización se activa la retroiluminación y se muestra un mensaje de bienvenida durante 2 segundos.
+
+\subsubsection{Estados visualizados}
+
+El LCD muestra información contextual según el estado del sistema. Cuando el sistema está apagado muestra "Sistema Apagado". Durante el movimiento indica la dirección ("SUBIENDO..." o "BAJANDO...") y solicita espera. Cuando está parado muestra la planta actual y el mensaje "DISPONIBLE".
+
+\subsection{Integración con servicios web externos}
+
+\subsubsection{Widget de noticias}
+
+Para demostrar la capacidad del sistema de consumir servicios web externos y enriquecer la experiencia del usuario, se implementó un widget de noticias en la interfaz web que obtiene y muestra las últimas noticias tecnológicas e industriales relevantes.
+
+\textbf{Implementación técnica:}
+
+El ESP32 actúa como proxy realizando peticiones HTTP GET a la API de News API (\url{https://newsapi.org}), un servicio gratuito que proporciona acceso a más de 80,000 fuentes de noticias internacionales. El sistema solicita noticias filtradas por categorías relevantes como tecnología (\textit{technology}), negocios (\textit{business}) o temas específicos mediante palabras clave como "IoT", "industria 4.0" o "automatización".
+
+La respuesta JSON de la API contiene título, descripción, fuente y URL de cada noticia. El ESP32 parsea estos datos utilizando la biblioteca ArduinoJson y los sirve a través de un endpoint dedicado (\texttt{/noticias}) en formato JSON simplificado. La interfaz web JavaScript consume este endpoint mediante peticiones asíncronas y renderiza las noticias en un panel lateral o inferior de la página principal.
+
+\textbf{Beneficios de esta integración:}
+
+Esta funcionalidad demuestra varios conceptos avanzados de IoT. En primer lugar, evidencia la capacidad del ESP32 de actuar no solo como servidor web, sino también como cliente HTTP que consume APIs REST externas. En segundo lugar, ilustra el paradigma de agregación de información donde un dispositivo IoT integra datos locales (sensores) con información global (noticias de Internet), proporcionando una experiencia enriquecida al usuario. Además, resulta prácticamente útil al ofrecer contenido relevante durante los períodos de espera mientras el montacargas se desplaza entre plantas. Finalmente, el filtrado por categorías tecnológicas e industriales mantiene la información alineada con el contexto del sistema, pudiendo incluir noticias sobre innovaciones en automatización, nuevos sensores IoT, actualizaciones de seguridad o tendencias en Industria 4.0.
+
+\textbf{Consideraciones de implementación:}
+
+Dado que el plan gratuito de News API permite hasta 100 peticiones diarias, el sistema implementa un sistema de caché local que actualiza las noticias cada 2 horas en lugar de cada petición del usuario. Esto optimiza el uso de la cuota de la API y reduce la latencia de carga de la interfaz web. Las noticias se almacenan temporalmente en memoria SPIFFS del ESP32 y se sirven directamente desde allí, realizando peticiones a la API externa solo cuando el caché expira o durante el arranque del sistema.
+
+\textbf{Nota importante:} El código fuente completo de ambos módulos (SensoresESP.ino y Montacargas.ino), incluyendo la implementación del consumo de la API de noticias, está disponible en el repositorio del proyecto: \url{https://github.com/pnavarro3/ProyectoIoT}
+
+\section{Esquema de Conexiones}
+
+\subsection{Conexiones del módulo de sensores}
+
+El módulo de sensores requiere las siguientes conexiones al ESP32:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|p{5cm}|}
+\hline
+\textbf{Sensor} & \textbf{Pin Sensor} & \textbf{Pin ESP32} & \textbf{Observaciones} \\
+\hline
+\multirow{4}{*}{HC-SR04} & VCC & 5V & Requiere 5V para operación \\
+ & GND & GND & Tierra común \\
+ & TRIG & GPIO 5 & Salida trigger (3.3V compatible) \\
+ & ECHO & GPIO 18 & Entrada echo (5V tolerante) \\
+\hline
+\multirow{3}{*}{DHT11} & VCC & 3.3V & Opera a 3.3V o 5V \\
+ & GND & GND & Tierra común \\
+ & DATA & GPIO 4 & Bus de datos con pull-up interno \\
+\hline
+\multirow{3}{*}{LDR Digital} & VCC & 3.3V & Módulo con comparador \\
+ & GND & GND & Tierra común \\
+ & OUT & GPIO 34 & Salida digital (HIGH=oscuro) \\
+\hline
+\end{tabular}
+\caption{Conexiones detalladas del módulo de sensores}
+\end{table}
+
+\textbf{Notas importantes:}
+
+En cuanto a la alimentación y compatibilidad de señales, es fundamental tener en cuenta que el sensor HC-SR04 requiere una alimentación de 5V para su correcto funcionamiento, aunque afortunadamente sus señales de salida son completamente compatibles con los niveles lógicos de 3.3V que utiliza el ESP32. Por otro lado, el pin GPIO 34 del ESP32 tiene una característica especial: es exclusivamente de entrada (input only), lo cual lo hace perfectamente adecuado para conectar el módulo LDR que solo necesita ser leído. Desde el punto de vista de la integridad de las señales, se recomienda encarecidamente utilizar cables de longitud reducida, preferiblemente menores a 30 cm, para las conexiones del HC-SR04, ya que esto minimiza significativamente las interferencias electromagnéticas que podrían afectar la precisión de las mediciones ultrasónicas.
+
+\subsection{Conexiones del módulo de control}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|p{5cm}|}
+\hline
+\textbf{Dispositivo} & \textbf{Pin Dispositivo} & \textbf{Pin ESP32} & \textbf{Observaciones} \\
+\hline
+\multirow{4}{*}{Módulo Relés} & VCC & 5V & Alimentación módulo \\
+ & GND & GND & Tierra común \\
+ & IN1 & GPIO 26 & Control Relé 1 (lógica invertida) \\
+ & IN2 & GPIO 25 & Control Relé 2 (lógica invertida) \\
+\hline
+ & IN3 & GPIO 27 & Control Relé 3 (lógica invertida) \\
+ & IN4 & GPIO 14 & Control Relé 4 (lógica invertida) \\
+\hline
+\multirow{2}{*}{LCD I2C} & SDA & GPIO 21 & Bus I2C datos \\
+ & SCL & GPIO 22 & Bus I2C reloj \\
+\hline
+ & VCC & 5V & Alimentación LCD \\
+ & GND & GND & Tierra común \\
+\hline
+\multirow{2}{*}{LED} & Ánodo (+) & GPIO 2 & A través de resistencia 220$\Omega$ \\
+ & Cátodo (-) & GND & Tierra \\
+\hline
+\end{tabular}
+\caption{Conexiones detalladas del módulo de control}
+\end{table}
+
+\textbf{Lógica invertida de relés:}
+
+El módulo de relés HW-316 implementa una lógica de control invertida que debe tenerse en cuenta durante la programación. Cuando se aplica un nivel bajo (LOW, 0V) a una entrada de control, el relé correspondiente se activa y el LED indicador del módulo se enciende, permitiendo el paso de corriente a través de sus contactos. Por el contrario, cuando se aplica un nivel alto (HIGH, 3.3V), el relé se desactiva, el LED del módulo se apaga y los contactos se abren, interrumpiendo el circuito de potencia.
+
+\subsection{Conexiones del motor Dahlander}
+
+Las conexiones del motor al módulo de relés dependen del esquema específico del motor (Y/YY o $\Delta$/YY). A continuación se muestra un esquema general:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|l|p{7cm}|}
+\hline
+\textbf{Relé} & \textbf{Función} & \textbf{Conexión al Motor} \\
+\hline
+Relé 1 & Subida lenta & Contactor dirección subida + baja velocidad \\
+Relé 2 & Bajada lenta & Contactor dirección bajada + baja velocidad \\
+Relé 3 & Velocidad alta & Contactor conmutación a alta velocidad \\
+Relé 4 & Alimentación & Contactor maestro línea trifásica \\
+\hline
+\end{tabular}
+\caption{Función de relés en control del motor}
+\end{table}
+
+\textbf{Advertencia de seguridad:}
+
+Es imperativo destacar que todas las conexiones relacionadas con la potencia eléctrica del motor deben ser ejecutadas exclusivamente por personal técnico calificado y con experiencia en instalaciones eléctricas industriales. Además, es obligatorio respetar estrictamente las normativas eléctricas vigentes en la localidad donde se realice la instalación, incluyendo todos los reglamentos de seguridad aplicables. El sistema debe incorporar protecciones térmicas adecuadas para prevenir sobrecalentamientos del motor, así como protecciones diferenciales que garanticen la seguridad de las personas ante posibles fugas de corriente. Desde el punto de vista operacional, resulta crítico garantizar que nunca se activen simultáneamente relés que controlen direcciones opuestas de rotación, ya que esto podría causar cortocircuitos y daños graves al motor y al sistema de control. Finalmente, antes de poner en marcha el sistema, es indispensable verificar cuidadosamente la secuencia de fases de la alimentación trifásica del motor para asegurar que el sentido de rotación sea el correcto.
+
+\section{Algoritmos y Lógica de Control}
+
+\subsection{Sistema de referencia de posición}
+
+El sistema define cuatro plantas basándose en la distancia medida por el sensor ultrasónico:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Planta} & \textbf{Distancia (cm)} & \textbf{Tolerancia} & \textbf{Rango} \\
+\hline
+0 & 5 & $\pm$ 1 & 4 - 6 cm \\
+1 & 20 & $\pm$ 1 & 19 - 21 cm \\
+2 & 35 & $\pm$ 1 & 34 - 36 cm \\
+3 & 50 & $\pm$ 1 & 49 - 51 cm \\
+\hline
+\end{tabular}
+\caption{Sistema de referencia de plantas}
+\end{table}
+
+La función de determinación de planta utiliza el criterio de mínima distancia:
+
+\begin{equation}
+\text{Planta} = \arg\min_{i} |d_{\text{medida}} - d_{\text{planta}_i}|
+\end{equation}
+
+donde $d_{\text{planta}_i}$ son las distancias de referencia (5, 20, 35, 50 cm).
+
+\subsection{Perfil de velocidad trapezoidal}
+
+El perfil de velocidad se estructura en tres fases:
+
+\begin{equation}
+v(d) = \begin{cases}
+v_{\text{baja}} & \text{si } d \leq d_{\text{lenta}} \\
+v_{\text{alta}} & \text{si } d > d_{\text{lenta}} \\
+\end{cases}
+\end{equation}
+
+donde $d$ representa la distancia restante hasta el destino, $d_{\text{lenta}}$ define el umbral de 4 cm que determina la zona de velocidad reducida, mientras que $v_{\text{baja}}$ corresponde a la velocidad del motor cuando opera con mayor número de polos (configuración de baja velocidad) y $v_{\text{alta}}$ representa la velocidad cuando el motor opera con menor número de polos (configuración de alta velocidad).
+
+Este perfil optimiza el tiempo de desplazamiento mientras mantiene precisión en el posicionamiento.
+
+\subsection{Sistema anti-oscilación}
+
+Para evitar oscilaciones en el punto de destino, se implementa un flag de estado \texttt{destinoAlcanzado} que opera mediante la siguiente lógica: cuando el sistema recibe una solicitud de movimiento hacia un nuevo destino, el flag se establece en \texttt{false}, indicando que el montacargas debe estar en movimiento. Una vez que el montacargas alcanza su posición objetivo, es decir, cuando la diferencia absoluta entre la distancia actual y la distancia de destino es menor o igual a la tolerancia establecida, el flag cambia a \texttt{true}. Mientras el flag permanece en estado \texttt{false}, el sistema rechaza cualquier nuevo comando de destino, asegurando que no se interrumpa un movimiento en curso. Por otro lado, cuando el flag está en estado \texttt{true}, el motor permanece completamente detenido incluso si el sensor detecta pequeñas oscilaciones en la lectura de posición.
+
+Este mecanismo evita que pequeñas variaciones en la lectura del sensor causen activaciones y desactivaciones repetidas del motor.
+
+\subsection{Validación de datos del sensor}
+
+Se implementan múltiples validaciones para garantizar datos confiables:
+
+\begin{enumerate}
+    \item \textbf{Validación de rango:} Solo se aceptan mediciones entre 2 y 400 cm
+    \item \textbf{Filtro de mediana:} Elimina valores atípicos mediante estadística de 5 muestras
+    \item \textbf{Timeout de comunicación:} Si no se reciben datos en 1 segundo, detener motor
+    \item \textbf{Mínimo de muestras válidas:} Se requieren al menos 3 de 5 muestras válidas para calcular la mediana
+\end{enumerate}
+
+Estas validaciones proporcionan robustez ante fallos del sensor o interferencias ambientales.
+
+\section{Pruebas y Resultados}
+
+\subsection{Pruebas de comunicación MQTT}
+
+Se verificó el correcto funcionamiento del protocolo MQTT mediante las siguientes pruebas:
+
+\textbf{Prueba 1: Publicación desde módulo de sensores}
+
+Para verificar la correcta publicación de datos desde el módulo de sensores, se utilizó la herramienta de línea de comandos \texttt{mosquitto\_sub}, ejecutando el comando \texttt{mosquitto\_sub -h 192.168.1.100 -t "montacargas/sensores/\#" -v} para suscribirse a todos los tópicos relacionados con los sensores. Como resultado, se confirmó la recepción exitosa de mensajes con una frecuencia de publicación de cada 250 milisegundos para las mediciones de distancia y cada 2 segundos para los datos de temperatura y humedad. La latencia promedio medida fue inferior a 50 milisegundos, lo cual resulta excelente para esta aplicación de control.
+
+\textbf{Prueba 2: Suscripción en módulo de control}
+
+La verificación del correcto funcionamiento de la suscripción a tópicos MQTT en el módulo de control se realizó mediante el monitor serial del ESP32, observando que la función callback se ejecutaba correctamente para cada mensaje recibido. Además, se confirmó que las variables globales del programa se actualizaban sin pérdidas aparentes de información.
+
+\textbf{Prueba 3: Reconexión automática}
+
+Para evaluar la robustez del sistema ante fallos de comunicación, se procedió a detener deliberadamente el servicio Mosquitto durante la operación normal. Los módulos ESP32 detectaron la pérdida de conexión en menos de 5 segundos, y al reiniciar el broker MQTT, ambos módulos lograron reconectar automáticamente sin requerir ninguna intervención manual, demostrando la eficacia del mecanismo de reconexión implementado.
+
+\subsection{Pruebas de sensores}
+
+\textbf{Sensor HC-SR04:}
+
+Para evaluar la precisión del sensor ultrasónico, se realizaron 100 mediciones consecutivas a distancias conocidas y calibradas de 5, 20, 35 y 50 centímetros. El análisis de los datos reveló que sin aplicar ningún tipo de filtrado, el error promedio se situaba en aproximadamente $\pm$ 8 mm, con la aparición ocasional de valores atípicos que se desviaban significativamente de las mediciones reales. Sin embargo, al implementar el filtro de mediana de 5 muestras, el error promedio se redujo notablemente a $\pm$ 3 mm, eliminando completamente los valores atípicos. Esta mejora condujo a la conclusión de que el filtro de mediana mejora significativamente la estabilidad y confiabilidad de las mediciones del sistema.
+
+\textbf{Sensor DHT11:}
+
+Las mediciones del sensor DHT11 fueron comparadas con un termómetro calibrado de referencia, obteniendo una diferencia de $\pm$ 1.5°C, valor que se encuentra completamente dentro de las especificaciones del fabricante del sensor. En cuanto al tiempo de respuesta, se observó que el sensor requiere aproximadamente 30 segundos para reflejar cambios térmicos en su entorno. Adicionalmente, se registraron lecturas fallidas ocasionales, que representaron menos del 2\% del total de intentos de lectura, pero estas fueron correctamente manejadas por el sistema de validación implementado en el código.
+
+\textbf{Módulo LDR:}
+
+El módulo sensor de luminosidad LDR fue configurado mediante el ajuste del potenciómetro integrado en el módulo, logrando establecer un umbral de transición entre condiciones de iluminación clara y oscura en aproximadamente 200 lux. Las pruebas demostraron una respuesta inmediata del sensor, con tiempos de detección inferiores a 100 milisegundos ante cambios en las condiciones de iluminación. El control del LED indicador, que se activa automáticamente en condiciones de baja luminosidad, funcionó correctamente en todas las pruebas realizadas.
+
+\subsection{Pruebas de control de motor}
+
+\textbf{Prueba de activación de relés:}
+
+La verificación del correcto funcionamiento de los relés se realizó utilizando un multímetro configurado en modo de prueba de continuidad, confirmando que los contactos conmutan adecuadamente. Se verificó la lógica invertida del módulo, confirmando que un nivel bajo (LOW) activa efectivamente el relé. Los tiempos de conmutación medidos oscilaron entre 15 y 20 milisegundos por relé, y el consumo eléctrico promedio de cada relé activado resultó ser de aproximadamente 18 miliamperios.
+
+\textbf{Prueba de secuencias de movimiento:}
+
+Se validaron todas las combinaciones de activación de relés necesarias para el control del motor. Para el movimiento ascendente se confirmaron activos el Relé 4 (alimentación) y el Relé 1 (dirección de subida) operando en velocidad baja. En el movimiento descendente se activaron el Relé 4 junto con el Relé 2 (dirección de bajada), también en velocidad baja. Para alcanzar la velocidad alta, se activaron simultáneamente el Relé 4, el relé de dirección correspondiente (Relé 1 o 2) y el Relé 3 que conmuta a alta velocidad. La condición de parada se verificó desactivando todos los relés. Es importante destacar que no se observaron activaciones simultáneas de relés que controlan direcciones opuestas, lo cual podría causar daños al sistema.
+
+\subsection{Pruebas de precisión de posicionamiento}
+
+Se realizaron 20 ciclos completos de movimiento entre todas las plantas:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Planta} & \textbf{Distancia objetivo} & \textbf{Error promedio} & \textbf{Error máximo} \\
+\hline
+0 & 5 cm & $\pm$ 0.4 cm & $\pm$ 0.8 cm \\
+1 & 20 cm & $\pm$ 0.5 cm & $\pm$ 0.9 cm \\
+2 & 35 cm & $\pm$ 0.6 cm & $\pm$ 1.0 cm \\
+3 & 50 cm & $\pm$ 0.5 cm & $\pm$ 0.9 cm \\
+\hline
+\end{tabular}
+\caption{Precisión de posicionamiento medida experimentalmente}
+\end{table}
+
+Todos los errores máximos se mantuvieron dentro de la tolerancia de $\pm$ 1 cm establecida, cumpliendo el objetivo de precisión.
+
+\subsection{Pruebas de interfaz web}
+
+\textbf{Funcionalidad básica:}
+
+La interfaz web fue sometida a pruebas exhaustivas desde múltiples dispositivos incluyendo computadoras de escritorio, tablets y smartphones, logrando acceso exitoso desde todos ellos. El diseño responsive de la interfaz demostró adaptarse correctamente a los diferentes tamaños de pantalla sin pérdida de funcionalidad o legibilidad. El mecanismo de actualización asincrónica opera de forma estable con el intervalo configurado de 1 segundo, y la latencia medida desde que el usuario hace clic en un botón hasta que se ejecuta el comando resultó ser inferior a 200 milisegundos en la red local.
+
+\textbf{Prueba del widget de noticias:}
+
+Se verificó el correcto funcionamiento de la integración con News API monitorizando las peticiones HTTP desde el ESP32. El sistema logró obtener exitosamente las últimas 5 noticias de tecnología en formato JSON, con un tiempo de respuesta promedio de 800-1200 ms dependiendo de la latencia de Internet. El parseo JSON y el renderizado en la interfaz web funcionaron correctamente, mostrando título, fuente y enlace de cada noticia. El sistema de caché demostró operar adecuadamente, sirviendo noticias desde memoria local sin realizar peticiones redundantes a la API externa. La visualización se adaptó correctamente en dispositivos móviles, mostrando las noticias en formato de lista vertical en pantallas pequeñas.
+
+\textbf{Prueba de bloqueo durante movimiento:}
+
+Para verificar el correcto funcionamiento del mecanismo de seguridad, se solicitó un movimiento desde la planta 0 hasta la planta 3, y durante el trayecto se intentó solicitar un desplazamiento hacia la planta 2. Como resultado esperado, los botones de control se deshabilitaron automáticamente y se visualizó correctamente un mensaje de advertencia indicando que el montacargas estaba en movimiento. Una vez que el sistema alcanzó el destino original (planta 3), los botones se reactivaron automáticamente, permitiendo nuevos comandos.
+
+\subsection{Análisis de resultados}
+
+Los resultados de las pruebas demuestran que el sistema cumple con los objetivos planteados:
+
+\begin{enumerate}
+    \item \textbf{Comunicación MQTT:} Latencia $<$ 50 ms, sin pérdidas significativas, reconexión automática funcional
+    
+    \item \textbf{Precisión de posicionamiento:} Error máximo de $\pm$ 1 cm en todas las plantas, cumpliendo especificación
+    
+    \item \textbf{Filtro de mediana:} Reducción del error de medición de $\pm$ 8 mm a $\pm$ 3 mm, mejora del 62.5\%
+    
+    \item \textbf{Perfil de velocidad:} Transiciones suaves entre velocidades, sin oscilaciones en destino
+    
+    \item \textbf{Seguridad:} Bloqueo de comandos durante movimiento funcional, validaciones operando correctamente
+    
+    \item \textbf{Interfaces de usuario:} Web y LCD operando correctamente con información en tiempo real
+\end{enumerate}
+
+El sistema demuestra ser viable para aplicaciones de control industrial con requisitos moderados de precisión y latencia.
+
+\section{Problemas Encontrados y Soluciones}
+
+\subsection{Ruido en mediciones ultrasónicas}
+
+\textbf{Problema:}
+Las mediciones del HC-SR04 presentaban valores atípicos ocasionales (variaciones de varios centímetros) que causaban activaciones erráticas del motor.
+
+\textbf{Causa identificada:}
+
+El análisis detallado del problema reveló que las mediciones erráticas se debían principalmente a tres factores. En primer lugar, las reflexiones múltiples de las ondas ultrasónicas en superficies cercanas al sensor podían generar ecos secundarios que interfieren con la medición principal. En segundo lugar, las interferencias acústicas provenientes de motores eléctricos u otros dispositivos mecánicos en funcionamiento cercano al sensor generaban ruido que afectaba la recepción de la señal. Finalmente, las variaciones ambientales en temperatura y las corrientes de aire modifican la velocidad de propagación del sonido, introduciendo variaciones adicionales en las mediciones.
+
+\textbf{Solución implementada:}
+Se implementó un filtro de mediana de 5 muestras que elimina valores atípicos manteniendo la respuesta rápida del sistema. Esta solución redujo el error de medición en 62.5\% sin agregar latencia significativa ($<$ 50 ms adicionales).
+
+\textbf{Alternativas consideradas pero descartadas:}
+
+Durante el proceso de solución se evaluaron otras opciones que finalmente no fueron implementadas. El filtro de media móvil, aunque más simple de implementar, resultó ser menos efectivo para eliminar valores atípicos (outliers) en comparación con el filtro de mediana. Por otro lado, el filtro de Kalman, si bien es una solución teóricamente superior, se consideró excesivamente complejo para los requerimientos de esta aplicación particular, agregando complejidad computacional innecesaria. Finalmente, se evaluó el uso de un sensor láser de distancia, pero su mayor costo económico y la complejidad adicional de montaje no justificaban la mejora marginal en precisión que ofrecería.
+
+\subsection{Oscilación en puntos de destino}
+
+\textbf{Problema:}
+Al alcanzar una planta, el motor se activaba y desactivaba repetidamente debido a pequeñas variaciones en la lectura del sensor ($\pm$ 0.5 cm), causando desgaste innecesario.
+
+\textbf{Causa identificada:}
+El algoritmo original reactivaba el motor inmediatamente al detectar desviación del destino, sin considerar que la medición oscila naturalmente.
+
+\textbf{Solución implementada:}
+
+Se implementó un flag booleano denominado \texttt{destinoAlcanzado} que opera mediante una máquina de estados bien definida. Este flag se activa (pasa a \texttt{true}) cuando el montacargas alcanza el destino solicitado, es decir, cuando la distancia medida está dentro del margen de tolerancia establecido. Una vez activado, el flag mantiene el motor completamente detenido incluso si las lecturas del sensor oscilan ligeramente alrededor del punto de destino. El flag solo se desactiva (pasa a \texttt{false}) cuando el usuario emite un nuevo comando de destino, momento en el cual el sistema inicia un nuevo ciclo de movimiento. Adicionalmente, mientras el flag esté en estado \texttt{false} (indicando movimiento en progreso), el sistema previene la aceptación de nuevos comandos de destino, evitando interrupciones no deseadas del movimiento actual.
+
+Esta solución eliminó completamente las oscilaciones y mejoró la vida útil de los componentes mecánicos y relés.
+
+\subsection{Latencia en comunicación MQTT}
+
+\textbf{Problema inicial:}
+Con intervalo de publicación de 2 segundos, el sistema de control tenía respuesta lenta a cambios de posición, resultando en sobrepaso del destino.
+
+\textbf{Análisis:}
+Para un movimiento a velocidad alta ($\approx$ 10 cm/s estimado), el montacargas se desplazaba 20 cm entre actualizaciones, haciendo imposible un control preciso.
+
+\textbf{Solución:}
+
+Se tomó la decisión de reducir el intervalo de publicación de los datos de distancia de 2 segundos a 250 milisegundos. Esta modificación resultó en múltiples mejoras: el desplazamiento máximo del montacargas entre actualizaciones consecutivas se redujo a 2.5 cm, lo cual es suficiente para detectar con anticipación adecuada la entrada en la zona de frenado definida en 4 cm. El incremento en el tráfico MQTT generado por esta mayor frecuencia de publicación (4 mensajes por segundo) resultó completamente aceptable para la capacidad de la red local y el broker Mosquitto. Finalmente, esta optimización logró una mejora del 87.5\% en el tiempo de respuesta del sistema de control.
+
+El sistema resultante proporciona control fluido y preciso del posicionamiento.
+
+\section{Conclusiones}
+
+\subsection{Cumplimiento de objetivos}
+
+El proyecto ha cumplido satisfactoriamente todos los objetivos planteados:
+
+\begin{enumerate}
+    \item \textbf{Arquitectura IoT distribuida:} Se implementó exitosamente una arquitectura basada en dos ESP32 comunicándose mediante MQTT, demostrando las ventajas de separación de responsabilidades entre sensado y control.
+    
+    \item \textbf{Sistema de adquisición de datos:} Se integró un conjunto heterogéneo de sensores (ultrasónico, temperatura/humedad, luminosidad) con técnicas de filtrado digital que garantizan mediciones confiables.
+    
+    \item \textbf{Control de posición preciso:} El algoritmo de control logra posicionamiento con precisión de $\pm$ 1 cm en las cuatro plantas definidas, cumpliendo la especificación establecida.
+    
+    \item \textbf{Control de velocidad variable:} Se aprovechó exitosamente la característica de dos velocidades del motor Dahlander implementando un perfil trapezoidal que optimiza tiempos de desplazamiento manteniendo suavidad en arranques y paradas.
+    
+    \item \textbf{Mecanismos de seguridad:} Los sistemas de bloqueo de comandos, validación de datos y reconexión automática operan correctamente, proporcionando robustez al sistema.
+    
+    \item \textbf{Interfaces de usuario:} Tanto la interfaz web como el display LCD proporcionan acceso efectivo al sistema con actualización en tiempo real de telemetría. La integración del widget de noticias demuestra exitosamente la capacidad de consumir servicios web externos y enriquecer la experiencia del usuario.
+    
+    \item \textbf{Documentación completa:} El proyecto incluye documentación técnica exhaustiva que facilita la comprensión, replicación y mantenimiento del sistema.
+\end{enumerate}
+
+\subsection{Ventajas del sistema implementado}
+
+El sistema desarrollado presenta múltiples ventajas frente a soluciones tradicionales basadas en PLCs:
+
+\textbf{Ventajas económicas:}
+
+Desde el punto de vista económico, el sistema desarrollado presenta ventajas sustanciales. El costo total de los componentes utilizados asciende aproximadamente a \$50 dólares estadounidenses, en contraste con los más de \$500 dólares que costaría un sistema equivalente basado en PLCs industriales, lo que representa una reducción del 90\% en el costo del hardware. Además, al utilizar plataformas de código abierto y herramientas gratuitas, el proyecto no requiere la adquisición de licencias de software propietario, eliminando costos recurrentes de mantenimiento de software.
+
+\textbf{Ventajas técnicas:}
+
+En el aspecto técnico, el ESP32 proporciona conectividad WiFi integrada de forma nativa, eliminando la necesidad de módulos de comunicación adicionales que incrementarían el costo y complejidad del sistema. La interfaz web desarrollada es accesible desde cualquier dispositivo con navegador, sin necesidad de instalar software especializado o aplicaciones propietarias. El firmware del ESP32 puede ser actualizado de forma remota utilizando el mecanismo OTA (Over-The-Air), facilitando el mantenimiento y la implementación de mejoras sin necesidad de acceso físico al dispositivo. La arquitectura modular implementada, con separación entre sensado y control, facilita significativamente la expansión del sistema mediante la adición de nuevos módulos o sensores. La capacidad demostrada de consumir APIs REST externas (News API) evidencia la versatilidad del ESP32 como cliente HTTP, permitiendo integrar servicios cloud y enriquecer la funcionalidad más allá de la red local. Además, el sistema integra el monitoreo de variables ambientales como temperatura, humedad y luminosidad, proporcionando información adicional que puede ser valiosa para mantenimiento predictivo o analítica operacional.
+
+\textbf{Ventajas operativas:}
+
+Desde el punto de vista operativo y de mantenimiento, el sistema ofrece importantes ventajas prácticas. La configuración y personalización del sistema se realiza mediante edición del código en el entorno Arduino IDE, que es altamente accesible incluso para usuarios con conocimientos básicos de programación. El proceso de debugging y detección de errores se ve facilitado enormemente por la disponibilidad del monitor serial, que permite observar en tiempo real el estado interno del sistema y los valores de las variables. Los usuarios pueden visualizar el estado y la telemetría del sistema de forma simultánea tanto en el display LCD local como en la interfaz web remota, proporcionando flexibilidad de acceso. Finalmente, todos los datos de telemetría se encuentran disponibles en tiempo real a través del broker MQTT, lo que facilita su análisis, registro histórico o integración con otros sistemas de monitorización.
+
+\subsection{Limitaciones}
+
+A pesar de los resultados positivos, el sistema presenta algunas limitaciones que deben considerarse:
+
+\textbf{Limitaciones de hardware:}
+
+En cuanto al hardware utilizado, el sensor HC-SR04 presenta una precisión limitada de aproximadamente $\pm$ 3 mm, lo cual establece un límite físico para mejoras adicionales en la precisión del sistema de posicionamiento. Los relés electromecánicos empleados tienen una vida útil finita, típicamente alrededor de 100,000 operaciones de conmutación, después de lo cual requieren reemplazo. El ESP32, aunque altamente capaz, no está certificado para aplicaciones críticas de seguridad (clasificación SIL 0), lo que limita su uso en entornos industriales donde se requieren garantías de seguridad certificadas. Además, el sistema actual carece de alimentación de respaldo, lo que significa que ante cortes eléctricos el sistema se detiene completamente sin capacidad de mantener su estado o posición.
+
+\textbf{Limitaciones de software:}
+
+En el ámbito del software, la interfaz web actual no implementa ningún mecanismo de autenticación, lo que la hace vulnerable a accesos no autorizados si el sistema se encuentra conectado a redes públicas o inseguras. El sistema tampoco almacena un historial de operaciones, perdiendo valiosa información que podría ser útil para análisis de uso, auditorías o detección de patrones. Además, no se han implementado diagnósticos avanzados ni algoritmos de predicción de fallos que podrían permitir mantenimiento preventivo. Finalmente, es importante destacar que el código desarrollado no incluye certificaciones para uso industrial crítico, lo que puede limitar su adopción en ciertos entornos regulados.
+
+\textbf{Limitaciones de comunicación:}
+
+En lo referente a las comunicaciones, el sistema depende completamente de la red WiFi, lo que lo hace susceptible a interferencias electromagnéticas y obstrucciones físicas que pueden degradar o interrumpir la conectividad. El alcance operativo está inherentemente limitado por la cobertura de la red WiFi, que en ambientes interiores típicamente no supera los 30 metros con obstáculos. La configuración actual utiliza calidad de servicio QoS nivel 0 en MQTT, lo que significa que no hay garantía de entrega de mensajes y podrían perderse datos en condiciones de red adversas. Finalmente, las comunicaciones MQTT no están encriptadas, lo que representa un riesgo de seguridad ya que los datos y comandos viajan en texto plano a través de la red.
+
+\subsection{Trabajo futuro}
+
+Se identifican las siguientes líneas de trabajo para mejorar y extender el sistema:
+
+\textbf{Mejoras de hardware:}
+
+En el aspecto de hardware, se propone reemplazar los relés electromecánicos actuales por relés de estado sólido (SSR), que ofrecen mayor vida útil, conmutación completamente silenciosa y tiempos de respuesta más rápidos. Para aumentar la fiabilidad del sistema, sería beneficioso agregar sensores redundantes que permitan la continuidad de operación incluso ante el fallo de un sensor individual. La inclusión de un sistema de alimentación ininterrumpida (UPS) permitiría la operación continua ante cortes eléctricos breves y proporcionaría tiempo suficiente para un apagado controlado ante cortes prolongados. Finalmente, la instalación de sensores de corriente en las líneas del motor permitiría el monitoreo en tiempo real del consumo eléctrico, facilitando la detección temprana de anomalías mecánicas o sobrecarga.
+
+\textbf{Mejoras de software:}
+
+Desde el punto de vista del software, resulta prioritario implementar un sistema de autenticación con usuario y contraseña en la interfaz web para prevenir accesos no autorizados. El sistema se beneficiaría enormemente de la incorporación de capacidades de almacenamiento de logs, ya sea localmente en una tarjeta SD o remotamente en una base de datos, permitiendo la trazabilidad completa de operaciones y la generación de reportes históricos. El desarrollo de algoritmos de mantenimiento predictivo basados en el análisis de telemetría acumulada podría anticipar fallos antes de que ocurran, optimizando los costos de mantenimiento. La implementación de actualización Over-The-Air (OTA) del firmware facilitaría el despliegue de mejoras y correcciones sin necesidad de acceso físico a los dispositivos. Finalmente, agregar soporte para múltiples idiomas en la interfaz ampliaría la accesibilidad del sistema para usuarios internacionales.
+
+\textbf{Mejoras de comunicación:}
+
+En el ámbito de las comunicaciones, la implementación de TLS/SSL para la encriptación de las comunicaciones MQTT protegería los datos y comandos contra interceptación o manipulación maliciosa. Complementariamente, agregar un esquema de autenticación basado en certificados digitales proporcionaría una capa adicional de seguridad, asegurando que solo dispositivos autorizados puedan publicar o suscribirse a los tópicos críticos. La configuración de niveles de calidad de servicio QoS 1 o 2 para los mensajes críticos de control garantizaría la entrega de comandos importantes incluso en condiciones de red adversas. Finalmente, la implementación de un protocolo de comunicación de respaldo, como LoRa o Zigbee, proporcionaría redundancia ante fallos completos de la red WiFi, asegurando la continuidad operacional en escenarios críticos.
+
+\textbf{Funcionalidades adicionales:}
+
+El sistema podría expandirse con múltiples funcionalidades que mejorarían significativamente la experiencia de usuario. Un sistema de notificaciones push a dispositivos móviles alertaría a los usuarios sobre eventos importantes como la finalización de movimientos, errores detectados o condiciones de mantenimiento requeridas. El desarrollo de un dashboard de analíticas con gráficos históricos permitiría visualizar patrones de uso, identificar picos de demanda y optimizar la operación. Un modo de mantenimiento especializado con diagnósticos avanzados facilitaría las tareas de personal técnico al proporcionar información detallada del estado de cada componente. La integración con asistentes de voz populares como Amazon Alexa o Google Assistant permitiría control por comandos de voz, aumentando la accesibilidad del sistema. Finalmente, el desarrollo de una API REST completa facilitaría la integración del montacargas con otros sistemas empresariales como ERP, sistemas de gestión de almacenes o plataformas de automatización de edificios.
+
+\textbf{Extensiones del sistema:}
+
+La arquitectura actual podría escalarse para soportar edificios con más de 4 plantas, simplemente ajustando el sistema de referencia de posición y los algoritmos de control. Una extensión natural del sistema consistiría en implementar el control de múltiples montacargas desde una única interfaz centralizada, permitiendo la gestión eficiente de instalaciones con varios montacargas operando simultáneamente. Para optimizar el uso en edificios con alta demanda, se podría implementar un sistema de priorización de llamadas que asigne los montacargas de forma inteligente según criterios como urgencia, eficiencia energética o minimización de tiempos de espera. Finalmente, la integración completa con sistemas de gestión de edificios (Building Management Systems - BMS) permitiría coordinar el funcionamiento del montacargas con otros sistemas del edificio como iluminación, climatización, seguridad y control de accesos, maximizando la eficiencia operativa global.
+
+\section{Referencias Bibliográficas}
+
+\begin{thebibliography}{99}
+
+\bibitem{mqtt}
+OASIS Standard. (2014). \textit{MQTT Version 3.1.1}. Organization for the Advancement of Structured Information Standards. \\
+\url{http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html}
+
+\bibitem{esp32}
+Espressif Systems. (2023). \textit{ESP32 Technical Reference Manual}. Version 4.6. \\
+\url{https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf}
+
+\bibitem{arduino}
+Arduino. (2023). \textit{Arduino IDE Documentation}. \\
+\url{https://www.arduino.cc/reference/en/}
+
+\bibitem{mosquitto}
+Eclipse Foundation. (2023). \textit{Eclipse Mosquitto - An open source MQTT broker}. \\
+\url{https://mosquitto.org/documentation/}
+
+\bibitem{hcsr04}
+Elec Freaks. \textit{Ultrasonic Ranging Module HC-SR04 Datasheet}. \\
+\url{https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf}
+
+\bibitem{dht11}
+Aosong Electronics. \textit{DHT11 Humidity \& Temperature Sensor Datasheet}. \\
+\url{https://www.mouser.com/datasheet/2/758/DHT11-Technical-Data-Sheet-Translated-Version-1143054.pdf}
+
+\bibitem{dahlander}
+Siemens. (2020). \textit{Motores Asíncronos de Polos Conmutables}. Manual Técnico. \\
+Siemens AG, Drive Technologies Division.
+
+\bibitem{iot}
+Gubbi, J., Buyya, R., Marusic, S., \& Palaniswami, M. (2013). \textit{Internet of Things (IoT): A vision, architectural elements, and future directions}. Future Generation Computer Systems, 29(7), 1645-1660.
+
+\bibitem{mqtt_iot}
+Naik, N. (2017). \textit{Choice of effective messaging protocols for IoT systems: MQTT, CoAP, AMQP and HTTP}. 2017 IEEE International Systems Engineering Symposium (ISSE), Vienna, Austria, pp. 1-7.
+
+\bibitem{pubsubclient}
+O'Leary, N. (2023). \textit{PubSubClient Library for Arduino}. GitHub Repository. \\
+\url{https://github.com/knolleary/pubsubclient}
+
+\bibitem{lcd_i2c}
+De Brabander, F. \textit{LiquidCrystal I2C Library}. Arduino Library Repository. \\
+\url{https://github.com/johnrickman/LiquidCrystal_I2C}
+
+\bibitem{median_filter}
+Tukey, J. W. (1977). \textit{Exploratory Data Analysis}. Addison-Wesley. \\
+ISBN: 978-0201076165
+
+\end{thebibliography}
+
+\appendix
+
+\section{Código Fuente}
+
+El código fuente completo del proyecto, con comentarios detallados y documentación en línea, está disponible en el repositorio de GitHub:
+
+\begin{center}
+\url{https://github.com/pnavarro3/ProyectoIoT}
+\end{center}
+
+\subsection{SensoresESP.ino}
+
+El módulo de sensores implementa la adquisición de datos de los sensores HC-SR04, DHT11 y LDR, aplicando un filtro de mediana para estabilizar las mediciones del sensor ultrasónico. Las principales constantes de configuración incluyen:
+
+\begin{itemize}
+\item Pines GPIO: TRIG=5, ECHO=18, LDR=34, DHT=4
+\item Intervalo de muestreo: 250ms para distancia, 2s para temperatura/humedad
+\item Filtro de mediana de 5 muestras
+\item Validación de rango: 2-400 cm
+\end{itemize}
+
+\subsection{Montacargas.ino}
+
+El módulo de control gestiona el posicionamiento del montacargas, implementando el servidor web, control de relés y actualización del LCD. Las principales constantes incluyen:
+
+\begin{itemize}
+\item Pines de relés: REL É1=26, RELÉ2=25, RELÉ3=27, RELÉ4=14 (lógica invertida)
+\item LCD I2C: dirección 0x27, tamaño 16x2
+\item Tolerancia de posicionamiento: $\pm$1 cm
+\item Zona de velocidad lenta: 4 cm
+\item Plantas: 0=5cm, 1=20cm, 2=35cm, 3=50cm
+\end{itemize}
+
+\textbf{Nota:} El repositorio incluye ambos archivos .ino con toda la lógica de implementación, funciones auxiliares, manejo de errores y comentarios explicativos.
+
+\section{Especificaciones Técnicas}
+
+\subsection{Componentes utilizados}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|l|l|p{4cm}|}
+\hline
+\textbf{Componente} & \textbf{Modelo} & \textbf{Cantidad} & \textbf{Especificaciones} \\
+\hline
+Microcontrolador & ESP32 DevKit & 2 & 240MHz, WiFi, 34 GPIO \\
+\hline
+Sensor ultrasónico & HC-SR04 & 1 & Rango 2-400cm, 5V \\
+\hline
+Sensor temp/humedad & DHT11 & 1 & 0-50°C, 20-90\%RH \\
+\hline
+Fotoresistor & Módulo LDR & 1 & Salida digital, ajustable \\
+\hline
+Módulo relés & HW-316 & 1 & 4 canales, 10A, 250VAC \\
+\hline
+Display LCD & 16x2 I2C & 1 & Dirección 0x27, 5V \\
+\hline
+LED indicador & LED 5mm & 1 & Rojo, 2V 20mA \\
+\hline
+Resistencias & 220$\Omega$ & 1 & 1/4W para LED \\
+\hline
+Fuentes & 5V 2A/3A & 2 & Una por módulo \\
+\hline
+Cables Dupont & M-M, M-F & varios & Conexiones protoboard \\
+\hline
+\end{tabular}
+\caption{Lista de materiales del proyecto}
+\end{table}
+
+\textbf{Costo estimado total:} Aproximadamente \$50 USD (varía según proveedor y región).
+
+\subsection{Datasheets}
+
+Los datasheets completos de los componentes principales están disponibles en:
+
+\begin{enumerate}
+    \item \textbf{ESP32:} \\
+    \url{https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf}
+    
+    \item \textbf{HC-SR04:} \\
+    \url{https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf}
+    
+    \item \textbf{DHT11:} \\
+    \url{https://www.mouser.com/datasheet/2/758/DHT11-Technical-Data-Sheet-1143054.pdf}
+    
+    \item \textbf{LCD 16x2 HD44780:} \\
+    \url{https://www.sparkfun.com/datasheets/LCD/HD44780.pdf}
+    
+    \item \textbf{Módulo Relés HW-316:} \\
+    Disponible en sitios de fabricantes de módulos Arduino/ESP32
+\end{enumerate}
+
+\textbf{Nota sobre compatibilidad:} Todos los componentes listados son compatibles con niveles de voltaje de 3.3V (ESP32) o incluyen conversión de nivel integrada. El HC-SR04 requiere alimentación de 5V pero sus señales son compatibles con 3.3V.
+
+\vspace{1cm}
+
+\begin{center}
+\rule{\linewidth}{0.5pt}
+
+\vspace{0.5cm}
+
+\textbf{Proyecto IoT - Sistema de Control de Montacargas}
+
+\textit{Internet de las Cosas}
+
+Diciembre 2025
+
+\end{center}
+
+\end{document}

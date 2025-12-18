@@ -1,0 +1,139 @@
+═══════════════════════════════════════════════════════════════
+  CONFIGURACIÓN DEL BROKER MQTT EN TU PORTÁTIL
+═══════════════════════════════════════════════════════════════
+
+📋 PASOS A SEGUIR CUANDO ESTÉS EN TU PORTÁTIL:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣ INSTALAR MOSQUITTO (Broker MQTT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Opción A - Descarga directa:
+   • Ve a: https://mosquitto.org/download/
+   • Descarga el instalador para Windows (64-bit)
+   • Ejecuta como Administrador
+   • Instala en: C:\Program Files\mosquitto
+
+Opción B - Con Chocolatey (si lo tienes):
+   choco install mosquitto
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣ CONFIGURAR MOSQUITTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Crea el archivo: C:\Program Files\mosquitto\mosquitto.conf
+
+Contenido del archivo:
+   listener 1883
+   allow_anonymous true
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣ ABRIR PUERTO EN EL FIREWALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ejecuta PowerShell como Administrador y corre:
+
+   New-NetFirewallRule -DisplayName "MQTT Mosquitto" -Direction Inbound -Protocol TCP -LocalPort 1883 -Action Allow
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4️⃣ INICIAR EL BROKER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Opción A - Como servicio (recomendado):
+   net start mosquitto
+
+Opción B - Manual (para ver logs):
+   cd "C:\Program Files\mosquitto"
+   .\mosquitto.exe -c mosquitto.conf -v
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5️⃣ OBTENER LA IP DE TU PORTÁTIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+En PowerShell ejecuta:
+   ipconfig
+
+Busca en "Adaptador de LAN inalámbrica Wi-Fi" o "Adaptador de Ethernet":
+   • Dirección IPv4 . . . . . : 192.168.1.XXX
+   
+Anota esta IP, la necesitarás en el siguiente paso.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6️⃣ ACTUALIZAR LOS ARCHIVOS ARDUINO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Abre estos 2 archivos en Arduino IDE:
+   • ProyectoIoT/Montacargas/Montacargas.ino
+   • ProyectoIoT/SensoresESP/SensoresESP.ino
+
+En AMBOS archivos, busca esta línea:
+   const char* mqtt_server = "192.168.1.100";
+
+Cámbiala por la IP que obtuviste en el paso 5:
+   const char* mqtt_server = "192.168.1.XXX";  // Tu IP aquí
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7️⃣ VERIFICAR QUE FUNCIONA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Para probar que el broker funciona, abre 2 ventanas de PowerShell:
+
+Ventana 1 (Suscriptor - recibe mensajes):
+   cd "C:\Program Files\mosquitto"
+   .\mosquitto_sub.exe -h localhost -t "test/topic"
+
+Ventana 2 (Publicador - envía mensajes):
+   cd "C:\Program Files\mosquitto"
+   .\mosquitto_pub.exe -h localhost -t "test/topic" -m "Hola MQTT"
+
+Si ves "Hola MQTT" en la Ventana 1, ¡funciona! ✅
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 ARQUITECTURA DEL SISTEMA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ESP32 Sensores  ────[WiFi]───> 🖥️ Tu Portátil (Broker MQTT)
+   ├─ Ultrasonidos              ├─ Puerto 1883
+   ├─ Luminosidad               ├─ Tópicos:
+   ├─ DHT11                     │  • montacargas/sensores/distancia
+   └─ Publica datos             │  • montacargas/sensores/luminosidad
+                                 │  • montacargas/sensores/temperatura
+                                 │  • montacargas/sensores/humedad
+                                 
+ESP32 Montacargas ──[WiFi]───> 🖥️ Tu Portátil (Broker MQTT)
+   ├─ Recibe datos              └─ Retransmite mensajes
+   ├─ Control relés
+   ├─ Servidor Web
+   └─ Muestra info en web
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ IMPORTANTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Ambos ESP32 y tu portátil deben estar en la MISMA RED WiFi
+✓ La IP de tu portátil puede cambiar (usa IP estática o anótala siempre)
+✓ El firewall de Windows debe permitir el puerto 1883
+✓ Si usas un router, verifica que no bloquee comunicación entre dispositivos
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 LIBRERÍAS ARDUINO NECESARIAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Instala en Arduino IDE (Herramientas > Administrar Bibliotecas):
+   • PubSubClient (by Nick O'Leary)
+   • DHT sensor library (by Adafruit)
+   • Adafruit Unified Sensor
+
+
+═══════════════════════════════════════════════════════════════
+¿Necesitas ayuda? Revisa los logs de Mosquitto con -v (verbose)
+═══════════════════════════════════════════════════════════════
