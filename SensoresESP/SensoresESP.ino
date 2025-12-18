@@ -37,8 +37,11 @@ const char* topic_estado = "montacargas/sensores/estado";
 // Sensor de Luminosidad (LDR con umbral)
 #define LDR_PIN 34  // Pin digital (HIGH=Oscuro, LOW=Claro)
 
+// LED de iluminación
+#define LED_LUZ 15  // LED que se enciende cuando está oscuro
+
 // Sensor DHT11
-#define DHT_PIN 4  // GPIO4
+#define DHT_PIN 16  // GPIO16 (cambiado para mejor compatibilidad)
 #define DHT_TYPE DHT11
 
 // ========== OBJETOS ==========
@@ -99,6 +102,8 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(LDR_PIN, INPUT);  // Pin digital
+  pinMode(LED_LUZ, OUTPUT); // LED de iluminación
+  digitalWrite(LED_LUZ, LOW); // Apagado inicialmente
   
   // Inicializar DHT11
   dht.begin();
@@ -251,6 +256,14 @@ float leerUltrasonidos() {
 int leerLuminosidad() {
   // Leer valor digital del LDR (HIGH=Oscuro, LOW=Claro)
   int estadoLDR = digitalRead(LDR_PIN);
+  
+  // Controlar LED: encender si está oscuro, apagar si está claro
+  if (estadoLDR == HIGH) {
+    digitalWrite(LED_LUZ, HIGH);  // Encender LED (oscuro)
+  } else {
+    digitalWrite(LED_LUZ, LOW);   // Apagar LED (claro)
+  }
+  
   // Devolver 1 si está oscuro, 0 si está claro
   return estadoLDR;
 }

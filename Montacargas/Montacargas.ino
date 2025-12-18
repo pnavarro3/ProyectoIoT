@@ -46,7 +46,7 @@ const float PLANTA_0 = 5.0;   // Planta 0 a 5 cm
 const float PLANTA_1 = 20.0;  // Planta 1 a 20 cm
 const float PLANTA_2 = 35.0;  // Planta 2 a 35 cm
 const float PLANTA_3 = 50.0;  // Planta 3 a 50 cm
-const float TOLERANCIA = 1.0; // Margen de error para considerar llegada (±1cm)
+const float TOLERANCIA = 2.0; // Margen de error para considerar llegada (±1cm)
 const float DISTANCIA_LENTA = 4.0; // Primeros y últimos 4 cm en velocidad lenta
 
 float distancias_plantas[4] = {PLANTA_0, PLANTA_1, PLANTA_2, PLANTA_3};
@@ -91,12 +91,14 @@ void actualizarLCD() {
   // Línea 1: Estado del ascensor
   lcd.setCursor(0, 0);
   if (direccion == "Subiendo") {
-    lcd.print("  SUBIENDO...");
+    lcd.print(" SUBIENDO a P");
+    lcd.print(plantaDestino);
     lcd.setCursor(0, 1);
     lcd.print("Espere por favor");
   } 
   else if (direccion == "Bajando") {
-    lcd.print("  BAJANDO...");
+    lcd.print(" BAJANDO a P");
+    lcd.print(plantaDestino);
     lcd.setCursor(0, 1);
     lcd.print("Espere por favor");
   }
@@ -352,11 +354,17 @@ String paginaHTML() {
   html += "</style>";
   html += "<script>";
   html += "function actualizar(){fetch('/estado').then(r=>r.json()).then(d=>{";
-  html += "document.getElementById('planta').innerText='Planta '+d.planta;";
+  html += "var plantaTexto='';";
+  html += "if(d.estado=='Subiendo' && d.destino>=0){plantaTexto='Subiendo a P'+d.destino;}";
+  html += "else if(d.estado=='Bajando' && d.destino>=0){plantaTexto='Bajando a P'+d.destino;}";
+  html += "else{plantaTexto='Planta '+d.planta;}";
+  html += "document.getElementById('planta').innerText=plantaTexto;";
   html += "document.getElementById('temperatura').innerText=d.temperatura+' °C';";
   html += "document.getElementById('humedad').innerText=d.humedad+' %';";
   html += "document.getElementById('luz').innerText=d.luz;";
-  html += "document.getElementById('estado').innerText=d.estado;";
+  html += "var estadoTexto=d.estado;";
+  html += "if(d.velocidad && d.velocidad!='-'){estadoTexto+=' ('+d.velocidad+')';}";
+  html += "document.getElementById('estado').innerText=estadoTexto;";
   html += "var aviso=document.getElementById('aviso');";
   html += "var btns=document.getElementsByClassName('plantabot');";
   html += "if(d.power=='OFF' || d.estado=='Subiendo' || d.estado=='Bajando'){";
@@ -378,6 +386,10 @@ String paginaHTML() {
   html += "div.innerHTML='<h4>'+n.titulo+'</h4><p>'+n.descripcion+'</p><div class=\"fuente\">📰 '+n.fuente+'</div><a href=\"'+n.url+'\" target=\"_blank\">Leer más →</a>';";
   html += "container.appendChild(div);";
   html += "});}).catch(e=>console.error('Error cargando noticias:',e));}";
+  html += "function recargarNoticias(){";
+  html += "var container=document.getElementById('noticias-container');";
+  html += "container.innerHTML='<p>⏳ Actualizando noticias...</p>';";
+  html += "fetch('/actualizarnoticias').then(r=>r.text()).then(()=>{setTimeout(cargarNoticias,2000);}).catch(e=>{console.error('Error:',e);container.innerHTML='<p>❌ Error al actualizar noticias</p>';});}";
   html += "window.onload=()=>{actualizar();cargarNoticias();};";
   html += "</script></head><body>";
   html += "<h1>🏢 Control Montacargas IoT</h1>";
@@ -391,7 +403,15 @@ String paginaHTML() {
   html += "<div id='aviso' class='aviso'>⚠️ MONTACARGAS EN MOVIMIENTO - ESPERE A QUE LLEGUE AL DESTINO</div>";
   
   // Planta actual grande
-  html += "<div class='planta-actual' id='planta'>Planta " + String(plantaActual) + "</div>";
+  String plantaDisplay = "";
+  if (direccion == "Subiendo" && plantaDestino != -1) {
+    plantaDisplay = "Subiendo a P" + String(plantaDestino);
+  } else if (direccion == "Bajando" && plantaDestino != -1) {
+    plantaDisplay = "Bajando a P" + String(plantaDestino);
+  } else {
+    plantaDisplay = "Planta " + String(plantaActual);
+  }
+  html += "<div class='planta-actual' id='planta'>" + plantaDisplay + "</div>";
   
   // Grid de información
   html += "<div class='info-grid'>";
@@ -411,7 +431,11 @@ String paginaHTML() {
   html += "</div>";
   
   // Widget de noticias IoT
-  html += "<div class='noticias-section'><h2>📰 Últimas Noticias de IoT</h2>";
+  html += "<div class='noticias-section'>";
+  html += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;'>";
+  html += "<h2 style='margin:0;'>📰 Últimas Noticias de IoT</h2>";
+  html += "<button onclick='recargarNoticias()' style='padding:10px 20px;font-size:14px;'>🔄 Actualizar</button>";
+  html += "</div>";
   html += "<div id='noticias-container'><p>Cargando noticias...</p></div></div>";
   
   html += "</body></html>";
@@ -422,12 +446,6 @@ String paginaHTML() {
 
 // Obtener noticias de IoT desde News API
 void obtenerNoticiasIoT() {
-  // Solo actualizar si ha pasado el intervalo (2 horas) o es la primera vez
-  if (millis() - ultimaActualizacionNoticias < intervaloActualizacionNoticias && noticiasCache != "[]") {
-    Serial.println("Usando noticias en caché");
-    return;
-  }
-  
   Serial.println("Obteniendo noticias de IoT desde News API...");
   
   HTTPClient http;
@@ -537,10 +555,12 @@ void handlePlanta3() {
 void handleEstado() {
   String json = "{";
   json += "\"planta\":" + String(plantaActual) + ",";
+  json += "\"destino\":" + String(plantaDestino) + ",";
   json += "\"temperatura\":" + String(temperatura, 1) + ",";
   json += "\"humedad\":" + String(humedad, 1) + ",";
   json += "\"luz\":\"" + estadoLuz + "\",";
   json += "\"estado\":\"" + direccion + "\",";
+  json += "\"velocidad\":\"" + velocidad + "\",";
   json += "\"power\":\"" + String(powerOn ? "ON" : "OFF") + "\"";
   json += "}";
   server.send(200, "application/json", json);
@@ -549,6 +569,12 @@ void handleEstado() {
 void handleNoticias() {
   // Servir noticias desde caché
   server.send(200, "application/json", noticiasCache);
+}
+
+void handleActualizarNoticias() {
+  // Forzar actualización de noticias
+  obtenerNoticiasIoT();
+  server.send(200, "text/plain", "OK");
 }
 
 // ========== SETUP Y LOOP ==========
@@ -613,6 +639,7 @@ void setup() {
   server.on("/planta3", handlePlanta3);
   server.on("/estado", handleEstado);
   server.on("/noticias", handleNoticias);
+  server.on("/actualizarnoticias", handleActualizarNoticias);
 
   server.begin();
   Serial.println("Servidor web iniciado");
@@ -638,16 +665,6 @@ void loop() {
   
   // Atender peticiones web
   server.handleClient();
-  
-  // Actualizar noticias cada 2 horas
-  static unsigned long ultimoCheckNoticias = 0;
-  if (millis() - ultimoCheckNoticias > 60000) { // Verificar cada minuto si toca actualizar
-    ultimoCheckNoticias = millis();
-    if (millis() - ultimaActualizacionNoticias >= intervaloActualizacionNoticias) {
-      Serial.println("⏰ Actualizando noticias de IoT...");
-      obtenerNoticiasIoT();
-    }
-  }
   
   // Si no hay destino y está estable, actualizar planta actual según sensor
   if (plantaDestino == -1 && destinoAlcanzado && powerOn && distanciaSensor > 0) {
