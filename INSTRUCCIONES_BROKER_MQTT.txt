@@ -125,6 +125,23 @@ ESP32 Montacargas ──[WiFi]───> 🖥️ Tu Portátil (Broker MQTT)
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+� CONFIGURAR NEWS API (Widget de Noticias IoT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Ve a: https://newsapi.org
+2. Regístrate gratis (100 peticiones/día)
+3. Copia tu API Key
+4. En Montacargas.ino, busca esta línea:
+   const char* newsApiKey = "64cac7cb2c8b49b599852cb50d4e97dd";
+
+5. Reemplaza con tu API Key:
+   const char* newsApiKey = "TU_API_KEY_AQUI";
+
+⚠️ IMPORTANTE: Sin API Key válida, el widget de noticias mostrará
+   un error, pero el resto del sistema funcionará normalmente.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📚 LIBRERÍAS ARDUINO NECESARIAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -132,8 +149,27 @@ Instala en Arduino IDE (Herramientas > Administrar Bibliotecas):
    • PubSubClient (by Nick O'Leary)
    • DHT sensor library (by Adafruit)
    • Adafruit Unified Sensor
+   • ArduinoJson (by Benoit Blanchon) - Para parseo de noticias
+   • LiquidCrystal I2C (by Frank de Brabander)
 
 
 ═══════════════════════════════════════════════════════════════
-¿Necesitas ayuda? Revisa los logs de Mosquitto con -v (verbose)
+📱 ACCEDER A LA INTERFAZ WEB
 ═══════════════════════════════════════════════════════════════
+
+Una vez que hayas cargado el código en ambos ESP32:
+
+1. Abre el Monitor Serie del ESP32 Montacargas
+2. Busca la línea que dice: "IP: 192.168.X.XXX"
+3. Anota esa IP
+4. Abre un navegador en tu portátil
+5. Ve a: http://192.168.X.XXX
+
+La interfaz web mostrará:
+   • Planta actual del montacargas
+   • Temperatura y humedad
+   • Estado de iluminación
+   • Botones para enviar a cada planta
+   • Widget con noticias de IoT en tiempo real
+
+
