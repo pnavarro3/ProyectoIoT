@@ -5,16 +5,9 @@
 \usepackage{hyperref}
 \usepackage{amsmath}
 \usepackage{float}
-% Control de guionación: permitir cortes razonables y mejorar justificado
-% `htt` permite guionación en fuentes de tipo teletipo (código) cuando procede
-\usepackage[htt]{hyphenat}
-\usepackage{microtype}
-\usepackage{url}
-% Permitir rompimiento en barras, guiones y guiones bajos dentro de \url
-\def\UrlBreaks{\do\/\do-\do_}
-\usepackage{multirow}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{multirow}
 
 % Configuración de colores para código
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -40,14 +33,6 @@
     showtabs=false,                  
     tabsize=2
 }
-
-\lstset{style=mystyle}
-
-% Ajustes para evitar overfull hboxes conservando guionación razonable
-\hyphenpenalty=1000
-\exhyphenpenalty=1000
-\emergencystretch=1em
-\Urlmuskip=0mu plus 1mu
 
 \title{Sistema IoT de Control de Montacargas con Motor Dahlander}
 \author{Pablo Navarro Domínguez}
@@ -80,7 +65,7 @@ Diseñar e implementar un sistema de control automatizado basado en tecnologías
     
     \item Implementar un sistema de adquisición de datos que integre sensores de posición (HC-SR04), temperatura y humedad (DHT11), y luminosidad (LDR) con filtrado digital para garantizar mediciones confiables.
     
-    \item Diseñar e implementar un algoritmo de control de posición basado en retroalimentación del sensor ultrasónico que permita posicionar el montacargas en cuatro plantas predefinidas con precisión de $\pm$1 cm.
+    \item Diseñar e implementar un algoritmo de control de posición basado en retroalimentación del sensor ultrasónico que permita posicionar el montacargas en cuatro plantas predefinidas con precisión de $\pm$2 cm.
     
     \item Desarrollar un sistema de control de velocidad variable que aproveche las dos velocidades del motor Dahlander mediante un perfil trapezoidal para optimizar tiempos de desplazamiento minimizando oscilaciones.
     
@@ -523,11 +508,11 @@ El microcontrolador ESP32 ejecuta el algoritmo de control de posición y genera 
 
 El módulo de relés HW-316 actúa como primera etapa de aislamiento y amplificación. Cada señal de control del ESP32 activa un optoacoplador que proporciona aislamiento galvánico completo entre la lógica de 3.3V y el circuito de control. Los relés conmutan contactos capaces de manejar hasta 10A a 250VAC, suficiente para activar las bobinas de los contactores auxiliares.
 
-\\textbf{Nivel 3 - Contactores auxiliares (KA1-KA4):}
+\textbf{Nivel 3 - Contactores auxiliares (KA1-KA4):}
 
 Los contactores auxiliares operan con bobinas alimentadas a 24VDC y actúan como etapa de interposición entre los relés de control (HW-316) y los contactores de potencia. Proporcionan aislamiento, amplificación y permiten implementar enclavamientos mecánicos que evitan combinaciones peligrosas de contactores de potencia.
 
-\\textbf{Nivel 4 - Contactores de potencia (KM1-KM5):}
+\textbf{Nivel 4 - Contactores de potencia (KM1-KM5):}
 
 Los contactores de potencia conmuten las líneas trifásicas del motor (L1, L2, L3). En este proyecto sus funciones se definen de la siguiente forma: KM1 actúa como contactor común en los modos de velocidad lenta (se activa junto con KM4 o KM5); KM2 se emplea en la secuencia de velocidad rápida y debe permanecer desactivado cuando KM1 está activo; KM3 selecciona la configuración de velocidad rápida (menos polos); KM4 y KM5 seleccionan la configuración del sentido de giro para subida y bajada respectivamente (más polos). Las secuencias de activación incluyen enclavamientos y tiempos de espera para evitar cortocircuitos entre fases y proteger el motor.
 
@@ -955,7 +940,7 @@ En clase se realizaron pruebas prácticas para verificar el comportamiento del m
     \item Inserción de pausas y comprobaciones de enclavamientos en el código para evitar activaciones simultáneas conflictivas (p. ej. KA/KA y KM/KM incompatibles).
 \end{itemize}
 
-Las verificaciones se realizaron con multímetro en modo continuidad y observación del comportamiento del sistema: se confirmó la lógica invertida del módulo de relés (LOW = activo), el correcto cierre/abrir de contactos y que las secuencias programadas no provocaron activaciones simultáneas de direcciones opuestas. Durante las pruebas se midieron tiempos de conmutación por relé (~15–20 ms) y consumo por relé (≈18 mA). En conjunto, las pruebas en aula demostraron que el código de prueba y el esquema eléctrico operan de forma coherente y segura en las condiciones de ensayo.
+Las verificaciones se realizaron con multímetro en modo continuidad y observación del comportamiento del sistema: se confirmó la lógica invertida del módulo de relés (LOW = activo), el correcto cierre/abrir de contactos y que las secuencias programadas no provocaron activaciones simultáneas de direcciones opuestas. Durante las pruebas se midieron tiempos de conmutación por relé (15–20 ms) y consumo por relé (18 mA). En conjunto, las pruebas en aula demostraron que el código de prueba y el esquema eléctrico operan de forma coherente y segura en las condiciones de ensayo.
 
 \subsection{Pruebas de interfaz web}
 
